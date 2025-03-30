@@ -51,20 +51,30 @@ def extract_product_data(driver, valid_brands):
             models.append(brand + " " + model)
             brands.append("")
     return brands[25:], models[25:]
+    
 def escape_markdown_v2(text):
     special_chars = r'_*[]()~`>#+-=|{}.!'
     return ''.join(f'\\{char}' if char in special_chars else char for char in text)
+    
+def split_message(message, max_length=4000):
+    return [message[i:i+max_length] for i in range(0, len(message), max_length)]
 
 def send_telegram_message(message, bot_token, chat_id):
-    escaped_message = escape_markdown_v2(message)  # ✅ اصلاح متن قبل از ارسال
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    response = requests.post(url, json={"chat_id": chat_id, "text": escaped_message, "parse_mode": "MarkdownV2"})
-    response_data = response.json()
-    if response_data.get('ok'):
-        return response_data["result"]["message_id"]
-    else:
-        logging.error(f"❌ خطا در ارسال پیام: {response_data}")
-        return None
+    message_parts = split_message(message)  # ✅ تقسیم پیام به بخش‌های کوچک‌تر
+    last_message_id = None
+    for part in message_parts:
+        escaped_part = escape_markdown_v2(part)  # ✅ Escape کردن متن قبل از ارسال
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        response = requests.post(url, json={"chat_id": chat_id, "text": escaped_part, "parse_mode": "MarkdownV2"})
+        response_data = response.json()
+        if response_data.get('ok'):
+            last_message_id = response_data["result"]["message_id"]
+        else:
+            logging.error(f"❌ خطا در ارسال پیام: {response_data}")
+            return None
+    logging.info("✅ پیام ارسال شد!")
+    return last_message_id
+
 
 
 def process_category(driver, url, category_name, icon, valid_brands):
@@ -87,7 +97,7 @@ def process_category(driver, url, category_name, icon, valid_brands):
 def main():
     driver = get_driver()
     
-    phone_brands = ["Galaxy", "POCO", "Redmi", "iPhone"]
+    phone_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel"]
     laptop_brands = ["Asus", "Lenovo", "MSI", "MacBook", "Acer", "HP", "Dell"]
 
     samsung_message_id = process_category(driver, "https://hamrahtel.com/quick-checkout", "موجودی سامسونگ", "🔵", phone_brands)
