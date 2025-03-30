@@ -51,16 +51,21 @@ def extract_product_data(driver, valid_brands):
             models.append(brand + " " + model)
             brands.append("")
     return brands[25:], models[25:]
+def escape_markdown_v2(text):
+    special_chars = r'_*[]()~`>#+-=|{}.!'
+    return ''.join(f'\\{char}' if char in special_chars else char for char in text)
 
 def send_telegram_message(message, bot_token, chat_id):
+    escaped_message = escape_markdown_v2(message)  # ✅ اصلاح متن قبل از ارسال
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    response = requests.post(url, json={"chat_id": chat_id, "text": message, "parse_mode": "MarkdownV2"})
+    response = requests.post(url, json={"chat_id": chat_id, "text": escaped_message, "parse_mode": "MarkdownV2"})
     response_data = response.json()
     if response_data.get('ok'):
         return response_data["result"]["message_id"]
     else:
         logging.error(f"❌ خطا در ارسال پیام: {response_data}")
         return None
+
 
 def process_category(driver, url, category_name, icon, valid_brands):
     driver.get(url)
