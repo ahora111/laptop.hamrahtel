@@ -1,0 +1,28 @@
+name: Run Scraper
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # هر 5 دقیقه یک‌بار اجرا می‌شود
+  workflow_dispatch:  # این مورد به شما امکان می‌دهد به‌صورت دستی هم اجرا کنید
+
+jobs:
+  scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'  # نسخه پایتون را متناسب با نیاز خود انتخاب کنید
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt  # اطمینان حاصل کنید که تمام وابستگی‌ها در requirements.txt هستند
+
+    - name: Run scraper
+      run: |
+        python main.py  # نام فایل اسکریپت خود را به جای your_script.py بگذارید
