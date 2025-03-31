@@ -98,11 +98,15 @@ def decorate_line(line):
 
 
 
+def escape_markdown(text):
+    escape_chars = r"_*[]()~`>#+-=|{}.!"
+    return ''.join(f"\\{char}" if char in escape_chars else char for char in text)
+
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
-    return [f"**{line}**" if any(emoji in line for emoji in emojis) else line for line in lines]
+    return [f"**{escape_markdown(line)}**" if any(emoji in line for emoji in emojis) else line for line in lines]
 
-# تعریف لیست خطوط برای ورودی
+# تعریف لیست خطوط
 lines = [
     "🔵 Samsung Galaxy S23 Ultra",
     "🟡 POCO X5 Pro",
@@ -117,6 +121,7 @@ result = bold_lines_with_emojis(lines)
 # چاپ خروجی
 for line in result:
     print(line)
+
 
 
 def categorize_messages(lines):
