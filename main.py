@@ -32,6 +32,17 @@ def get_driver():
         logging.error(f"خطا در ایجاد WebDriver: {e}")
         return None
 
+def scroll_page(driver):
+    """اسکرول صفحه برای بارگذاری کامل داده‌ها"""
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+
 def process_category(url, valid_brands):
     driver = get_driver()
     if not driver:
