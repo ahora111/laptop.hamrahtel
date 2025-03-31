@@ -99,7 +99,7 @@ def decorate_line(line):
 def highlight_emojis(line):
     emojis = ('🔵', '🟡', '🍏', '🟣', '💻')
     if any(line.startswith(emoji) for emoji in emojis):
-        return f"*{line}*"  # Markdown syntax for bold in Telegram
+        return f"**{line}**"  # Markdown syntax for bold in Telegram
     return line
 
 # Example usage
