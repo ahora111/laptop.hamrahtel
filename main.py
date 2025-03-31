@@ -127,6 +127,7 @@ def get_header_footer(category, update_date):
     }
     footer = "\n\n☎️ شماره های تماس :\n📞 09371111558\n📞 02833991417"
     return headers[category], footer
+    
 
 def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
     message_parts = split_message(message)
@@ -140,10 +141,10 @@ def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
             "parse_mode": "MarkdownV2"
         }
         if reply_markup:
-            params["reply_markup"] = json.dumps(reply_markup)
+            params["reply_markup"] = json.dumps(reply_markup)  # ✅ تبدیل `reply_markup` به JSON
 
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(url, json=params, headers=headers)
+        headers = {"Content-Type": "application/json"}  # ✅ اضافه کردن `headers` برای `POST`
+        response = requests.post(url, json=params, headers=headers)  
         response_data = response.json()
         if response_data.get('ok'):
             last_message_id = response_data["result"]["message_id"]
@@ -151,30 +152,102 @@ def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
             logging.error(f"❌ خطا در ارسال پیام: {response_data}")
             return None
 
-    return last_message_id
+    logging.info("✅ پیام ارسال شد!")
+    return last_message_id  # برگشت message_id آخرین پیام
+
+
+def get_last_messages(bot_token, chat_id, limit=5):
+    url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+    response = requests.get(url)
+    if response.json().get("ok"):
+        messages = response.json().get("result", [])
+        return [msg for msg in messages if "message" in msg][-limit:]
+    return []
 
 def main():
     try:
-        for category_link in ['https://hamrahtel.com/quick-checkout', 'https://hamrahtel.com/quick-checkout?category=laptop']:
-            driver = get_driver()
-            if not driver:
-                return
-            
-            driver.get(category_link)
-            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
-            scroll_page(driver)
+        driver = get_driver()
+        if not driver:
+            logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
+            return
+        
+        driver.get('https://hamrahtel.com/quick-checkout', 'https://hamrahtel.com/quick-checkout?category=laptop')
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
+        scroll_page(driver)
 
-            valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Asus", "Dell", "HP", "Lenovo", "MacBook"]
-            brands, models = extract_product_data(driver, valid_brands)
-            driver.quit()
+        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "Asus", "Dell", "HP", "Lenovo", "MacBook"]
+        brands, models = extract_product_data(driver, valid_brands)
+        driver.quit()
 
-            if brands:
-                message_lines = [decorate_line(f"{process_model(models[i])} {brands[i]}") for i in range(len(brands))]
-                categories = categorize_messages(message_lines)
-                for category, lines in categories.items():
-                    if lines:
-                        message = get_header_footer(category, JalaliDate.today().strftime("%Y-%m-%d"))[0] + "\n".join(lines)
-                        send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+        samsung_message_id = None  # ذخیره message_id سامسونگ
+        xiaomi_message_id = None  # ذخیره message_id شیایومی
+        iphone_message_id = None  # ذخیره message_id آیفون
+        laptop_message_id = None  # ذخیره message_id لپ تاپ
+
+        if brands:
+            processed_data = []
+            for i in range(len(brands)):
+                model_str = process_model(models[i])
+                processed_data.append(f"{model_str} {brands[i]}")
+
+            update_date = JalaliDate.today().strftime("%Y-%m-%d")
+            message_lines = []
+            for row in processed_data:
+                decorated = decorate_line(row)
+                message_lines.append(decorated)
+
+            categories = categorize_messages(message_lines)
+
+            for category, lines in categories.items():
+                if lines:
+                    header, footer = get_header_footer(category, update_date)
+                    message = header + "\n" + "\n".join(lines) + footer
+                    msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+
+                    if category == "🔵":  # ذخیره message_id سامسونگ
+                        samsung_message_id = msg_id
+                    elif category == "🟡":  # ذخیره message_id شیایومی
+                        xiaomi_message_id = msg_id
+                    elif category == "🍏":  # ذخیره message_id آیفون
+                        iphone_message_id = msg_id
+                    elif category == "💻":  # ذخیره message_id لپ تاپ
+                        laptop_message_id = msg_id
+
+        else:
+            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
+
+        if not samsung_message_id:
+            logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
+            return
+
+        # ✅ ارسال پیام نهایی + دکمه‌های لینک به پیام‌های مربوطه
+        final_message = (
+            "✅ لیست گوشیای بالا بروز میباشد. تحویل کالا بعد از ثبت خرید، ساعت 11:30 صبح روز بعد می باشد.\n\n"
+            "✅ شماره کارت جهت واریز\n"
+            "🔷 شماره شبا : IR970560611828006154229701\n"
+            "🔷 شماره کارت : 6219861812467917\n"
+            "🔷 بلو بانک   حسین گرئی\n\n"
+            "⭕️ حتما رسید واریز به ایدی تلگرام زیر ارسال شود .\n"
+            "🆔 @lhossein1\n\n"
+            "✅شماره تماس ثبت سفارش :\n"
+            "📞 09371111558\n"
+            "📞 02833991417"
+        )
+
+        button_markup = {"inline_keyboard": []}
+        button_markup["inline_keyboard"].append([{"text": "📱 لیست سامسونگ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{samsung_message_id}"}])
+        
+        if xiaomi_message_id:
+            button_markup["inline_keyboard"].append([{"text": "📱 لیست شیایومی", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{xiaomi_message_id}"}])
+        if iphone_message_id:
+            button_markup["inline_keyboard"].append([{"text": "📱 لیست آیفون", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{iphone_message_id}"}])
+        if laptop_message_id:
+            button_markup["inline_keyboard"].append([{"text": "💻 لیست لپ تاپ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{laptop_message_id}"}])
+
+
+        send_telegram_message(final_message, BOT_TOKEN, CHAT_ID, reply_markup=button_markup)
+
     except Exception as e:
         logging.error(f"❌ خطا: {e}")
 
