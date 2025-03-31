@@ -101,7 +101,21 @@ def highlight_emojis(line):
     if any(line.startswith(emoji) for emoji in emojis):
         return f"**{line}**"  # Bold formatting
     return line
-        
+
+# Example usage:
+lines = [
+    "🔵 Galaxy S22 Ultra",
+    "🟡 POCO X4 Pro",
+    "🍏 iPhone 14 Pro Max",
+    "💻 لپتاپ اینچی جدید",
+    "مدلی که RAM خوبی دارد",
+    "محصولی بدون ایموجی"
+]
+
+highlighted_lines = [highlight_emojis(line) for line in lines]
+for line in highlighted_lines:
+    print(line)
+
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
     current_category = None
