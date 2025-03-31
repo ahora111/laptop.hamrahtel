@@ -82,19 +82,20 @@ def split_message(message, max_length=4000):
 
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
-        return line
+        return f"**{line}**"
     if "Galaxy" in line:
-        return f"🔵 {line}"
+        return f"**🔵 {line}**"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
-        return f"🟡 {line}"
+        return f"**🟡 {line}**"
     elif "iPhone" in line:
-        return f"🍏 {line}"
+        return f"**🍏 {line}**"
     elif any(keyword in line for keyword in ["اینچی"]):
-        return f"💻 {line}"
+        return f"**💻 {line}**"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
-        return f"🟣 {line}"
+        return f"**🟣 {line}**"
     else:
         return line
+
 
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
