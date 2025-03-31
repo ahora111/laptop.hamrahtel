@@ -43,6 +43,29 @@ def scroll_page(driver):
             break
         last_height = new_height
 
+def extract_product_data(driver, valid_brands):
+    product_elements = driver.find_elements(By.CLASS_NAME, 'mantine-Text-root')
+    brands, models = [], []
+    for product in product_elements:
+        name = product.text.strip().replace("تومانءء", "").replace("تومان", "").replace("نامشخص", "").strip()
+        parts = name.split()
+        brand = parts[0] if len(parts) >= 2 else name
+        model = " ".join(parts[1:]) if len(parts) >= 2 else ""
+        if brand in valid_brands:
+            brands.append(brand)
+            models.append(model)
+        else:
+            models.append(brand + " " + model)
+            brands.append("")
+    return brands[25:], models[25:]
+    
+def is_number(model_str):
+    try:
+        float(model_str.replace(",", ""))
+        return True
+    except ValueError:
+        return False
+        
 def process_category(url, valid_brands):
     driver = get_driver()
     if not driver:
