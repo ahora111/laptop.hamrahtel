@@ -84,7 +84,7 @@ def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
         return line
     if "Galaxy" in line:
-        return f"🔵 {line}"
+        return f"**🔵 {line}**"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
         return f"🟡 {line}"
     elif "iPhone" in line:
@@ -96,29 +96,6 @@ def decorate_line(line):
     else:
         return line
 
-
-
-def escape_markdown(text):
-    escape_chars = r"_*[]()~`>#+-=|{}.!"
-    return ''.join(f"\\{char}" if char in escape_chars else char for char in text)
-
-def bold_lines_with_emojis(lines):
-    emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
-    return [f"**{escape_markdown(line)}**" if any(emoji in line for emoji in emojis) else escape_markdown(line) for line in lines]
-
-def send_telegram_message(message, bot_token, chat_id):
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    params = {
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "MarkdownV2"
-    }
-    headers = {"Content-Type": "application/json"}
-    response = requests.post(url, json=params, headers=headers)
-    if response.status_code == 200:
-        print("✅ پیام با موفقیت ارسال شد!")
-    else:
-        print(f"❌ خطا در ارسال پیام: {response.status_code}, {response.text}")
 
 
 
