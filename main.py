@@ -94,7 +94,7 @@ def decorate_line(line):
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
         return f"🟣 **{escape_markdown(line)}**"
     else:
-        return lin
+        return line
 
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
