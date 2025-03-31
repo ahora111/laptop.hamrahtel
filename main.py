@@ -81,22 +81,20 @@ def split_message(message, max_length=4000):
     return [message[i:i+max_length] for i in range(0, len(message), max_length)]
 
 def decorate_line(line):
-    line = escape_markdown(line).strip()  # حذف فاصله‌های اضافی
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
-        return f"**{line}**"
+        return line
     if "Galaxy" in line:
-        return f"🔵 **{line}**"
+        return f"🔵 {line}"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
-        return f"🟡 **{line}**"
+        return f"🟡 {line}"
     elif "iPhone" in line:
-        return f"🍏 **{line}**"
+        return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی"]):
-        return f"💻 **{line}**"
+        return f"💻 {line}"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
-        return f"🟣 **{line}**"
-    elif line.replace(",", "").isdigit():  # بررسی اینکه خط فقط شامل اعداد (قیمت) است
-        return f"**{line}**"
-    return line
+        return f"🟣 {line}"
+    else:
+        return line
 
 
 
