@@ -91,7 +91,7 @@ def decorate_line(line):
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
         return f"🟣 {line}"
-    elif any(keyword in line for keyword in ["Asus", "Dell", "HP", "Lenovo", "MacBook"]):
+    elif any(keyword in line for keyword in ["Dell", "HP", "Lenovo", "Asus"]):
         return f"💻 {line}"
     else:
         return line
@@ -127,7 +127,6 @@ def get_header_footer(category, update_date):
     }
     footer = "\n\n☎️ شماره های تماس :\n📞 09371111558\n📞 02833991417"
     return headers[category], footer
-    
 
 def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
     message_parts = split_message(message)
@@ -166,24 +165,34 @@ def get_last_messages(bot_token, chat_id, limit=5):
 
 def main():
     try:
-        for category_link in ['https://hamrahtel.com/quick-checkout', 'https://hamrahtel.com/quick-checkout?category=laptop']:
-            driver = get_driver()
-            if not driver:
-                logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
-                return
-            
-            driver.get(category_link)
-            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
-            scroll_page(driver)
+        driver = get_driver()
+        if not driver:
+            logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
+            return
+        
+        driver.get('https://hamrahtel.com/quick-checkout?category=mobile')
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
+        scroll_page(driver)
 
-        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "Asus", "Dell", "HP", "Lenovo", "MacBook"]
+        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "Dell", "HP", "Lenovo", "Asus"]
         brands, models = extract_product_data(driver, valid_brands)
+        
+        driver.get('https://hamrahtel.com/quick-checkout?category=laptop')
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
+        scroll_page(driver)
+
+        laptop_brands, laptop_models = extract_product_data(driver, valid_brands)
+        brands.extend(laptop_brands)
+        models.extend(laptop_models)
+        
         driver.quit()
 
         samsung_message_id = None  # ذخیره message_id سامسونگ
         xiaomi_message_id = None  # ذخیره message_id شیایومی
         iphone_message_id = None  # ذخیره message_id آیفون
-        laptop_message_id = None  # ذخیره message_id لپ تاپ
+        laptop_message_id = None  # ذخیره message_id لپ‌تاپ
 
         if brands:
             processed_data = []
@@ -211,7 +220,7 @@ def main():
                         xiaomi_message_id = msg_id
                     elif category == "🍏":  # ذخیره message_id آیفون
                         iphone_message_id = msg_id
-                    elif category == "💻":  # ذخیره message_id لپ تاپ
+                    elif category == "💻":  # ذخیره message_id لپ‌تاپ
                         laptop_message_id = msg_id
 
         else:
@@ -243,8 +252,7 @@ def main():
         if iphone_message_id:
             button_markup["inline_keyboard"].append([{"text": "📱 لیست آیفون", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{iphone_message_id}"}])
         if laptop_message_id:
-            button_markup["inline_keyboard"].append([{"text": "💻 لیست لپ تاپ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{laptop_message_id}"}])
-
+            button_markup["inline_keyboard"].append([{"text": "💻 لیست لپ‌تاپ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{laptop_message_id}"}])
 
         send_telegram_message(final_message, BOT_TOKEN, CHAT_ID, reply_markup=button_markup)
 
@@ -253,3 +261,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
