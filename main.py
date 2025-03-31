@@ -219,7 +219,7 @@ def main():
                     message = header + "\n" + "\n".join(lines) + footer
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
-                    elif category == "🔵":  # ذخیره message_id سامسونگ
+                    if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
                     elif category == "🟡":  # ذخیره message_id شیایومی
                         xiaomi_message_id = msg_id
@@ -250,8 +250,8 @@ def main():
         )
 
         button_markup = {"inline_keyboard": []}
+         if samsung_message_id:
         button_markup["inline_keyboard"].append([{"text": "📱 لیست سامسونگ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{samsung_message_id}"}])
-        
         if xiaomi_message_id:
             button_markup["inline_keyboard"].append([{"text": "📱 لیست شیایومی", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{xiaomi_message_id}"}])
         if iphone_message_id:
