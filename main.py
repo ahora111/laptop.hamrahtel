@@ -94,9 +94,10 @@ def decorate_line(line):
         return f"💻 **{line}**"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
         return f"🟣 **{line}**"
-    elif any(char.isdigit() for char in line):  # شناسایی قیمت‌ها و نمایش آن‌ها با **bold**
+    elif line.replace(",", "").isdigit():  # بررسی اینکه خط فقط شامل اعداد (قیمت) است
         return f"**{line}**"
     return line
+
 
 
 def bold_lines_with_emojis(lines):
