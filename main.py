@@ -166,15 +166,15 @@ def get_last_messages(bot_token, chat_id, limit=5):
 
 def main():
     try:
-        driver = get_driver()
-        if not driver:
-            logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
-            return
-        
-        driver.get('https://hamrahtel.com/quick-checkout', 'https://hamrahtel.com/quick-checkout?category=laptop')
-        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
-        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
-        scroll_page(driver)
+        for category_link in ['https://hamrahtel.com/quick-checkout', 'https://hamrahtel.com/quick-checkout?category=laptop']:
+            driver = get_driver()
+            if not driver:
+                logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
+                return
+            
+            driver.get(category_link)
+            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+            scroll_page(driver)
 
         valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "Asus", "Dell", "HP", "Lenovo", "MacBook"]
         brands, models = extract_product_data(driver, valid_brands)
