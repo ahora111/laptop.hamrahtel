@@ -91,7 +91,7 @@ def decorate_line(line):
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
         return f"🟣 {line}"
-    elif any(keyword in line for keyword in ["Dell", "HP", "Lenovo", "Asus"]):
+    elif any(keyword in line for keyword in ["اینچی"]):
         return f"💻 {line}"
     else:
         return line
@@ -175,7 +175,7 @@ def main():
         logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
         scroll_page(driver)
 
-        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "Dell", "HP", "Lenovo", "Asus"]
+        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "اینچی" ]
         brands, models = extract_product_data(driver, valid_brands)
         
         driver.get('https://hamrahtel.com/quick-checkout?category=laptop')
