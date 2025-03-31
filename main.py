@@ -119,7 +119,7 @@ def categorize_messages(lines):
             current_category = "💻"
 
         if current_category:
-            categories[current_category].append(f"**{line}**")
+            categories[current_category].append(f"{line}")
 
     return categories
 
