@@ -84,7 +84,7 @@ def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
         return line
     if "Galaxy" in line:
-        return f"**🔵 {line}**"
+        return f"**🔵** {line}"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
         return f"🟡 {line}"
     elif "iPhone" in line:
