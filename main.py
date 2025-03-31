@@ -99,10 +99,10 @@ def decorate_line(line):
 def highlight_emojis(line):
     emojis = ('🔵', '🟡', '🍏', '🟣', '💻')
     if any(line.startswith(emoji) for emoji in emojis):
-        return f"**{line}**"  # Bold formatting
+        return f"*{line}*"  # Markdown syntax for bold in Telegram
     return line
 
-# Example usage:
+# Example usage
 lines = [
     "🔵 Galaxy S22 Ultra",
     "🟡 POCO X4 Pro",
@@ -112,9 +112,10 @@ lines = [
     "محصولی بدون ایموجی"
 ]
 
-highlighted_lines = [highlight_emojis(line) for line in lines]
+highlighted_lines = [highlight_emojis(escape_markdown(line)) for line in lines]
 for line in highlighted_lines:
     print(line)
+
 
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
