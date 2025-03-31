@@ -96,6 +96,12 @@ def decorate_line(line):
     else:
         return line
         
+def highlight_emojis(line):
+    emojis = ('🔵', '🟡', '🍏', '🟣', '💻')
+    if any(line.startswith(emoji) for emoji in emojis):
+        return f"**{line}**"  # Bold formatting
+    return line
+        
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
     current_category = None
