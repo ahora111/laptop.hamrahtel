@@ -104,23 +104,23 @@ def escape_markdown(text):
 
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
-    return [f"**{escape_markdown(line)}**" if any(emoji in line for emoji in emojis) else line for line in lines]
+    return [f"**{escape_markdown(line)}**" if any(emoji in line for emoji in emojis) else escape_markdown(line) for line in lines]
 
-# تعریف لیست خطوط
-lines = [
-    "🔵 Samsung Galaxy S23 Ultra",
-    "🟡 POCO X5 Pro",
-    "🍏 iPhone 14 Pro Max",
-    "💻 لپ‌تاپ Asus Vivobook",
-    "این یک خط معمولی است"
-]
+def send_telegram_message(message, bot_token, chat_id):
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    params = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "MarkdownV2"
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, json=params, headers=headers)
+    if response.status_code == 200:
+        print("✅ پیام با موفقیت ارسال شد!")
+    else:
+        print(f"❌ خطا در ارسال پیام: {response.status_code}, {response.text}")
 
-# فراخوانی تابع
-result = bold_lines_with_emojis(lines)
 
-# چاپ خروجی
-for line in result:
-    print(line)
 
 
 
