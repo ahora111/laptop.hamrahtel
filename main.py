@@ -84,7 +84,7 @@ def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
         return line
     if "Galaxy" in line:
-        return f"**🔵** {line}"
+        return f"🔵 {line}"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
         return f"🟡 {line}"
     elif "iPhone" in line:
@@ -219,7 +219,7 @@ def main():
                     message = header + "\n" + "\n".join(lines) + footer
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
-                    if category == "🔵":  # ذخیره message_id سامسونگ
+                    elif category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
                     elif category == "🟡":  # ذخیره message_id شیایومی
                         xiaomi_message_id = msg_id
