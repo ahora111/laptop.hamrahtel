@@ -81,20 +81,23 @@ def split_message(message, max_length=4000):
     return [message[i:i+max_length] for i in range(0, len(message), max_length)]
 
 def decorate_line(line):
+    line = escape_markdown(line).strip()  # حذف فاصله‌های اضافی
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
-        return f"**{escape_markdown(line)}**"
+        return f"**{line}**"
     if "Galaxy" in line:
-        return f"🔵 **{escape_markdown(line)}**"
+        return f"🔵 **{line}**"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
-        return f"🟡 **{escape_markdown(line)}**"
+        return f"🟡 **{line}**"
     elif "iPhone" in line:
-        return f"🍏 **{escape_markdown(line)}**"
+        return f"🍏 **{line}**"
     elif any(keyword in line for keyword in ["اینچی"]):
-        return f"💻 **{escape_markdown(line)}**"
+        return f"💻 **{line}**"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
-        return f"🟣 **{escape_markdown(line)}**"
-    else:
-        return line
+        return f"🟣 **{line}**"
+    elif any(char.isdigit() for char in line):  # شناسایی قیمت‌ها و نمایش آن‌ها با **bold**
+        return f"**{line}**"
+    return line
+
 
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
