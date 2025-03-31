@@ -79,22 +79,26 @@ def escape_markdown(text):
 
 def split_message(message, max_length=4000):
     return [message[i:i+max_length] for i in range(0, len(message), max_length)]
-    
+
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
-        return line
+        return f"**{line}**"
     if "Galaxy" in line:
-        return f"🔵 {line}"
+        return f"🔵 **{line}**"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
-        return f"🟡 {line}"
+        return f"🟡 **{line}**"
     elif "iPhone" in line:
-        return f"🍏 {line}"
+        return f"🍏 **{line}**"
     elif any(keyword in line for keyword in ["اینچی"]):
-        return f"💻 {line}"
+        return f"💻 **{line}**"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
-        return f"🟣 {line}"
+        return f"🟣 **{line}**"
     else:
         return line
+
+def bold_lines_with_emojis(lines):
+    emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
+    return [f"**{line}**" if any(emoji in line for emoji in emojis) else line for line in lines]
         
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
@@ -113,7 +117,7 @@ def categorize_messages(lines):
             current_category = "💻"
 
         if current_category:
-            categories[current_category].append(line)
+            categories[current_category].append(f"**{line}**")
 
     return categories
 
