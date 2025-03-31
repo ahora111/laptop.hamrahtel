@@ -89,10 +89,10 @@ def decorate_line(line):
         return f"🟡 {line}"
     elif "iPhone" in line:
         return f"🍏 {line}"
+     elif any(keyword in line for keyword in ["اینچی"]):
+        return f"💻 {line}"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
         return f"🟣 {line}"
-    elif any(keyword in line for keyword in ["اینچی"]):
-        return f"💻 {line}"
     else:
         return line
 
