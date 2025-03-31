@@ -82,19 +82,19 @@ def split_message(message, max_length=4000):
 
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻')):
-        return f"**{line}**"
+        return f"**{escape_markdown(line)}**"
     if "Galaxy" in line:
-        return f"🔵 **{line}**"
+        return f"🔵 **{escape_markdown(line)}**"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
-        return f"🟡 **{line}**"
+        return f"🟡 **{escape_markdown(line)}**"
     elif "iPhone" in line:
-        return f"🍏 **{line}**"
+        return f"🍏 **{escape_markdown(line)}**"
     elif any(keyword in line for keyword in ["اینچی"]):
-        return f"💻 **{line}**"
+        return f"💻 **{escape_markdown(line)}**"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
-        return f"🟣 **{line}**"
+        return f"🟣 **{escape_markdown(line)}**"
     else:
-        return line
+        return lin
 
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
