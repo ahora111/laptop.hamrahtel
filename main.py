@@ -83,7 +83,9 @@ def split_message(message, max_length=4000):
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻', '🟠')):
         return line
-    if "Galaxy" in line:
+    if any(keyword in line for keyword in ["Nartab", "Tab"]):
+        return f"🟠 {line}"
+    elif "Galaxy" in line:
         return f"🔵 {line}"
     elif "POCO" in line or "Poco" in line or "Redmi" in line:
         return f"🟡 {line}"
@@ -91,8 +93,6 @@ def decorate_line(line):
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی"]):
         return f"💻 {line}"
-    elif any(keyword in line for keyword in ["Nartab", "Tab"]):
-        return f"🟠 {line}"
     elif any(keyword in line for keyword in ["RAM", "FA", "Classic"]):
         return f"🟣 {line}"
     else:
