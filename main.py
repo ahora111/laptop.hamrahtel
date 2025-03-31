@@ -101,10 +101,23 @@ def decorate_line(line):
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
     return [f"**{line}**" if any(emoji in line for emoji in emojis) else line for line in lines]
-    
+
+# تعریف لیست خطوط برای ورودی
+lines = [
+    "🔵 Samsung Galaxy S23 Ultra",
+    "🟡 POCO X5 Pro",
+    "🍏 iPhone 14 Pro Max",
+    "💻 لپ‌تاپ Asus Vivobook",
+    "این یک خط معمولی است"
+]
+
+# فراخوانی تابع
 result = bold_lines_with_emojis(lines)
+
+# چاپ خروجی
 for line in result:
     print(line)
+
 
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
