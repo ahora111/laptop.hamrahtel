@@ -92,45 +92,44 @@ def get_header_footer(category, update_date):
 
 def main():
     try:
-        urls = {
-            "mobile": "https://hamrahtel.com/quick-checkout",
-            "laptop": "https://hamrahtel.com/quick-checkout?category=laptop"
-        }
+        driver = get_driver()
+        if not driver:
+            logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
+            return
         
-        category_message_ids = {}
-        for category, url in urls.items():
-            driver = get_driver()
-            if not driver:
-                logging.error(f"❌ نمی‌توان WebDriver را برای {category} ایجاد کرد.")
-                continue
-            
-            driver.get(url)
-            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
-            logging.info(f"✅ داده‌ها آماده‌ی استخراج هستند برای {category}!")
-            scroll_page(driver)
-
-            valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel"]
-            brands, models = extract_product_data(driver, valid_brands)
-            driver.quit()
-
-            if brands:
-                update_date = JalaliDate.today().strftime("%Y-%m-%d")
-                categories = categorize_messages(models)
-
-                for cat, lines in categories.items():
-                    if lines:
-                        header, footer = get_header_footer(cat, update_date)
-                        message = header + "\n" + "\n".join(lines) + footer
-                        msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
-                        if msg_id:
-                            category_message_ids[cat] = msg_id
-
-        final_message = "✅ لیست گوشیای بالا بروز میباشد. ... (متن ثابت)"
+        driver.get('https://hamrahtel.com/quick-checkout')
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        scroll_page(driver)
+        
+        driver_laptop = get_driver()
+        driver_laptop.get('https://hamrahtel.com/quick-checkout?category=laptop')
+        WebDriverWait(driver_laptop, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        scroll_page(driver_laptop)
+        
+        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone"]
+        brands, models = extract_product_data(driver, valid_brands)
+        laptop_brands, laptop_models = extract_product_data(driver_laptop, ["Asus", "HP", "Dell", "Lenovo", "Acer"])
+        driver.quit()
+        driver_laptop.quit()
+        
+        update_date = JalaliDate.today().strftime("%Y-%m-%d")
+        categories = categorize_messages([f"💻 {laptop_models[i]} {laptop_brands[i]}" for i in range(len(laptop_brands))])
+        
+        laptop_message_id = None
+        for category, lines in categories.items():
+            if lines:
+                header, footer = get_header_footer(category, update_date)
+                message = header + "\n" + "\n".join(lines) + footer
+                msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+                if category == "💻":
+                    laptop_message_id = msg_id
+        
+        final_message = "✅ لیست گوشیای بالا بروز میباشد. تحویل کالا بعد از ثبت خرید، ساعت 11:30 صبح روز بعد می باشد."
         button_markup = {"inline_keyboard": []}
-        for cat, msg_id in category_message_ids.items():
-            button_markup["inline_keyboard"].append([{"text": f"📱 لیست {cat}", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{msg_id}"}])
-        
+        if laptop_message_id:
+            button_markup["inline_keyboard"].append([{"text": "💻 لیست لپ‌تاپ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{laptop_message_id}"}])
         send_telegram_message(final_message, BOT_TOKEN, CHAT_ID, reply_markup=button_markup)
+
     except Exception as e:
         logging.error(f"❌ خطا: {e}")
 
