@@ -101,7 +101,11 @@ def decorate_line(line):
 def bold_lines_with_emojis(lines):
     emojis = ["🔵", "🟡", "🍏", "🟣", "💻"]
     return [f"**{line}**" if any(emoji in line for emoji in emojis) else line for line in lines]
-        
+    
+result = bold_lines_with_emojis(lines)
+for line in result:
+    print(line)
+
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": []}
     current_category = None
