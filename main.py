@@ -98,11 +98,6 @@ def decorate_line(line):
     else:
         return line
 
-
-
-
-
-
 def categorize_messages(lines):
     categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": [], "🟠": []}  # اضافه کردن 🟠 برای تبلت
     current_category = None
