@@ -216,21 +216,27 @@ def main():
                 try:
                     price = float(model_str.replace(",", ""))
                 except:
-                    price = float('inf')  # اگر عدد نبود، بذار ته لیست
-                brand = brands[i]
-                raw_data.append((price, model_str, brand))
+                    price = float('inf')  # برای مواردی که قیمت قابل تبدیل نیست
+                
+                brand = brands[i].strip()
+                if brand:
+                    full_text = f"{brand} {model_str}"
+                else:
+                    full_text = f"{model_str}"  # اگر برند نبود فقط قیمت چاپ بشه
+                
+                raw_data.append((price, full_text))
 
             # مرتب‌سازی بر اساس قیمت
             raw_data.sort(key=lambda x: x[0])
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
-            for _, model_str, brand in raw_data:
-                full_text = f"{model_str} {brand}"
-                decorated = decorate_line(full_text)
+            for _, full_text in raw_data:
+                decorated = decorate_line(full_text.strip())
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
+
 
             for category, lines in categories.items():
                 if lines:
