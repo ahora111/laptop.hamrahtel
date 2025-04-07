@@ -175,56 +175,52 @@ def main():
             logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
             return
         
-        # استخراج موبایل
         driver.get('https://hamrahtel.com/quick-checkout?category=mobile')
         WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
         scroll_page(driver)
 
         valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "اینچی" ]
         brands, models = extract_product_data(driver, valid_brands)
-
-        # استخراج لپ‌تاپ
+        
         driver.get('https://hamrahtel.com/quick-checkout?category=laptop')
         WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
         scroll_page(driver)
 
         laptop_brands, laptop_models = extract_product_data(driver, valid_brands)
         brands.extend(laptop_brands)
         models.extend(laptop_models)
 
-        # استخراج تبلت
-        driver.get('https://hamrahtel.com/quick-checkout?category=tablet')
+        driver.get('https://hamrahtel.com/quick-checkout?category=tablet')  # اضافه کردن لینک تبلت
         WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+        logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
         scroll_page(driver)
 
-        tablet_brands, tablet_models = extract_product_data(driver, valid_brands)
+        tablet_brands, tablet_models = extract_product_data(driver, valid_brands)  # استخراج داده‌های تبلت
         brands.extend(tablet_brands)
         models.extend(tablet_models)
-
+        
         driver.quit()
 
-        samsung_message_id = None
-        xiaomi_message_id = None
-        iphone_message_id = None
-        laptop_message_id = None
-        tablet_message_id = None
-
-        if brands:  # 👈 اینجا باید تو رفتگی داشته باشه
+        samsung_message_id = None  # ذخیره message_id سامسونگ
+        xiaomi_message_id = None  # ذخیره message_id شیایومی
+        iphone_message_id = None  # ذخیره message_id آیفون
+        laptop_message_id = None  # ذخیره message_id لپ‌تاپ
+        tablet_message_id = None  # ذخیره message_id تبلت
+        
+        if brands:
             processed_data = []
             for i in range(len(brands)):
                 model_str = process_model(models[i])
-                try:
-                    price = float(model_str.replace(",", ""))
-                except ValueError:
-                    price = float("inf")
-                full_text = f"{model_str} {brands[i]}"
-                decorated = decorate_line(full_text)
-                processed_data.append((price, decorated))
-
-            processed_data.sort(key=lambda x: x[0])
-            message_lines = [item[1] for item in processed_data]
+                processed_data.append(f"{model_str} {brands[i]}")
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
+            message_lines = []
+            for row in processed_data:
+                decorated = decorate_line(row)
+                message_lines.append(decorated)
+
             categories = categorize_messages(message_lines)
 
             for category, lines in categories.items():
@@ -233,16 +229,17 @@ def main():
                     message = header + "\n" + "\n".join(lines) + footer
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
-                    if category == "🔵":
+                    if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
-                    elif category == "🟡":
+                    elif category == "🟡":  # ذخیره message_id شیایومی
                         xiaomi_message_id = msg_id
-                    elif category == "🍏":
+                    elif category == "🍏":  # ذخیره message_id آیفون
                         iphone_message_id = msg_id
-                    elif category == "💻":
+                    elif category == "💻":  # ذخیره message_id لپ‌تاپ
                         laptop_message_id = msg_id
-                    elif category == "🟠":
+                    elif category == "🟠":  # ذخیره message_id تبلت
                         tablet_message_id = msg_id
+
         else:
             logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
 
@@ -250,6 +247,7 @@ def main():
             logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
             return
 
+        # ✅ ارسال پیام نهایی + دکمه‌های لینک به پیام‌های مربوطه
         final_message = (
             "✅ لیست گوشیای بالا بروز میباشد. تحویل کالا بعد از ثبت خرید، ساعت 11:30 صبح روز بعد می باشد.\n\n"
             "✅ شماره کارت جهت واریز\n"
@@ -279,7 +277,6 @@ def main():
 
     except Exception as e:
         logging.error(f"❌ خطا: {e}")
-
 
 if __name__ == "__main__":
     main()
