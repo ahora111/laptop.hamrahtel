@@ -213,13 +213,22 @@ def main():
             processed_data = []
             for i in range(len(brands)):
                 model_str = process_model(models[i])
-                processed_data.append(f"{model_str} {brands[i]}")
+                try:
+                    price = float(model_str.replace(",", ""))
+                except:
+                    price = float('inf')  # اگر عدد نبود، بذار ته لیست
+                full_text = f"{model_str} {brands[i]}"
+                processed_data.append((price, full_text))
+
+            # مرتب‌سازی صعودی بر اساس قیمت
+            processed_data.sort(key=lambda x: x[0])
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
-            for row in processed_data:
+            for _, row in processed_data:
                 decorated = decorate_line(row)
                 message_lines.append(decorated)
+
 
             categories = categorize_messages(message_lines)
 
