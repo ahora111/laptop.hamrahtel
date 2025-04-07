@@ -99,12 +99,26 @@ def decorate_line(line):
         return line
 
 def categorize_messages(lines):
-    categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": [], "🟠": []}
+    categories = {"🔵": [], "🟡": [], "🍏": [], "🟣": [], "💻": [], "🟠": []}  # اضافه کردن 🟠 برای تبلت
+    current_category = None
+
     for line in lines:
-        for symbol in categories:
-            if line.startswith(symbol):
-                categories[symbol].append(line)
-                break
+        if line.startswith("🔵"):
+            current_category = "🔵"
+        elif line.startswith("🟡"):
+            current_category = "🟡"
+        elif line.startswith("🍏"):
+            current_category = "🍏"
+        elif line.startswith("🟣"):
+            current_category = "🟣"
+        elif line.startswith("💻"):
+            current_category = "💻"
+        elif line.startswith("🟠"):  # اضافه کردن شرط برای تبلت
+            current_category = "🟠"
+
+        if current_category:
+            categories[current_category].append(f"{line}")
+
     return categories
 
 def get_header_footer(category, update_date):
@@ -114,7 +128,7 @@ def get_header_footer(category, update_date):
         "🍏": f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n✅ لیست پخش موبایل اهورا\n⬅️ موجودی آیفون ➡️\n",
         "🟣": f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n✅ لیست پخش موبایل اهورا\n⬅️ موجودی متفرقه ➡️\n",
         "💻": f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n✅ لیست پخش موبایل اهورا\n⬅️ موجودی لپ‌تاپ ➡️\n",
-        "🟠": f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n✅ لیست پخش موبایل اهورا\n⬅️ موجودی تبلت ➡️\n",
+        "🟠": f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n✅ لیست پخش موبایل اهورا\n⬅️ موجودی تبلت ➡️\n",  # اضافه کردن هدر برای تبلت
     }
     footer = "\n\n☎️ شماره های تماس :\n📞 09371111558\n📞 02833991417"
     return headers[category], footer
@@ -131,10 +145,10 @@ def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
             "parse_mode": "MarkdownV2"
         }
         if reply_markup:
-            params["reply_markup"] = json.dumps(reply_markup)
+            params["reply_markup"] = json.dumps(reply_markup)  # ✅ تبدیل `reply_markup` به JSON
 
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(url, json=params, headers=headers)
+        headers = {"Content-Type": "application/json"}  # ✅ اضافه کردن `headers` برای `POST`
+        response = requests.post(url, json=params, headers=headers)  
         response_data = response.json()
         if response_data.get('ok'):
             last_message_id = response_data["result"]["message_id"]
@@ -143,7 +157,16 @@ def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
             return None
 
     logging.info("✅ پیام ارسال شد!")
-    return last_message_id
+    return last_message_id  # برگشت message_id آخرین پیام
+
+
+def get_last_messages(bot_token, chat_id, limit=5):
+    url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+    response = requests.get(url)
+    if response.json().get("ok"):
+        messages = response.json().get("result", [])
+        return [msg for msg in messages if "message" in msg][-limit:]
+    return []
 
 def main():
     try:
@@ -169,51 +192,76 @@ def main():
         brands.extend(laptop_brands)
         models.extend(laptop_models)
 
-        driver.get('https://hamrahtel.com/quick-checkout?category=tablet')
+        driver.get('https://hamrahtel.com/quick-checkout?category=tablet')  # اضافه کردن لینک تبلت
         WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
         logging.info("✅ داده‌ها آماده‌ی استخراج هستند!")
         scroll_page(driver)
 
-        tablet_brands, tablet_models = extract_product_data(driver, valid_brands)
+        tablet_brands, tablet_models = extract_product_data(driver, valid_brands)  # استخراج داده‌های تبلت
         brands.extend(tablet_brands)
         models.extend(tablet_models)
-
+        
         driver.quit()
 
+        samsung_message_id = None  # ذخیره message_id سامسونگ
+        xiaomi_message_id = None  # ذخیره message_id شیایومی
+        iphone_message_id = None  # ذخیره message_id آیفون
+        laptop_message_id = None  # ذخیره message_id لپ‌تاپ
+        tablet_message_id = None  # ذخیره message_id تبلت
+        
         if brands:
-            processed_data = []
-            for i in range(len(brands)):
-                model_str = process_model(models[i])
-                try:
-                    price = float(model_str.replace(",", ""))
-                except ValueError:
-                    price = float("inf")
-                full_text = f"{model_str} {brands[i]}"
-                decorated = decorate_line(full_text)
-                processed_data.append((price, decorated))
+processed_data = []
+for i in range(len(brands)):
+    model_str = process_model(models[i])
+    try:
+        # تبدیل قیمت به عدد برای مرتب‌سازی
+        price = float(model_str.replace(",", ""))
+    except ValueError:
+        price = float("inf")  # اگر قابل تبدیل نبود، در انتها قرار می‌گیرد
+    full_text = f"{model_str} {brands[i]}"
+    decorated = decorate_line(full_text)
+    processed_data.append((price, decorated))
 
-            processed_data.sort(key=lambda x: x[0])
-            message_lines = [item[1] for item in processed_data]
+# مرتب‌سازی بر اساس قیمت
+processed_data.sort(key=lambda x: x[0])
+
+# فقط متن مرتب‌شده‌ها
+message_lines = [item[1] for item in processed_data]
+
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
-            categories = categorize_messages(message_lines)
+            message_lines = []
+            for row in processed_data:
+                decorated = decorate_line(row)
+                message_lines.append(decorated)
 
-            msg_ids = {}
+            categories = categorize_messages(message_lines)
 
             for category, lines in categories.items():
                 if lines:
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(lines) + footer
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
-                    msg_ids[category] = msg_id
+
+                    if category == "🔵":  # ذخیره message_id سامسونگ
+                        samsung_message_id = msg_id
+                    elif category == "🟡":  # ذخیره message_id شیایومی
+                        xiaomi_message_id = msg_id
+                    elif category == "🍏":  # ذخیره message_id آیفون
+                        iphone_message_id = msg_id
+                    elif category == "💻":  # ذخیره message_id لپ‌تاپ
+                        laptop_message_id = msg_id
+                    elif category == "🟠":  # ذخیره message_id تبلت
+                        tablet_message_id = msg_id
+
         else:
             logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
-            return
 
-        if "🔵" not in msg_ids:
+        if not samsung_message_id:
             logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
             return
 
+        # ✅ ارسال پیام نهایی + دکمه‌های لینک به پیام‌های مربوطه
         final_message = (
             "✅ لیست گوشیای بالا بروز میباشد. تحویل کالا بعد از ثبت خرید، ساعت 11:30 صبح روز بعد می باشد.\n\n"
             "✅ شماره کارت جهت واریز\n"
@@ -228,12 +276,17 @@ def main():
         )
 
         button_markup = {"inline_keyboard": []}
-        for category, text in [("🔵", "📱 لیست سامسونگ"), ("🟡", "📱 لیست شیایومی"), ("🍏", "📱 لیست آیفون"), ("💻", "💻 لیست لپ‌تاپ"), ("🟠", "📱 لیست تبلت")]:
-            if category in msg_ids:
-                button_markup["inline_keyboard"].append([
-                    {"text": text, "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{msg_ids[category]}"}
-                ])
-
+        if samsung_message_id:
+            button_markup["inline_keyboard"].append([{"text": "📱 لیست سامسونگ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{samsung_message_id}"}])
+        if xiaomi_message_id:
+            button_markup["inline_keyboard"].append([{"text": "📱 لیست شیایومی", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{xiaomi_message_id}"}])
+        if iphone_message_id:
+            button_markup["inline_keyboard"].append([{"text": "📱 لیست آیفون", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{iphone_message_id}"}])
+        if laptop_message_id:
+            button_markup["inline_keyboard"].append([{"text": "💻 لیست لپ‌تاپ", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{laptop_message_id}"}])
+        if tablet_message_id:
+            button_markup["inline_keyboard"].append([{"text": "📱 لیست تبلت", "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{tablet_message_id}"}])
+    
         send_telegram_message(final_message, BOT_TOKEN, CHAT_ID, reply_markup=button_markup)
 
     except Exception as e:
