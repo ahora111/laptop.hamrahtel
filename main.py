@@ -228,7 +228,10 @@ def main():
 
             # مرتب‌سازی بر اساس قیمت
             raw_data.sort(key=lambda x: x[0])
-
+            
+            # چاپ خروجی مرتب‌شده برای بررسی
+            print("\n".join([f"{price:,} => {text}" for price, text in raw_data]))
+    
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
             for _, full_text in raw_data:
@@ -236,7 +239,6 @@ def main():
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
-
 
             for category, lines in categories.items():
                 if lines:
