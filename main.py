@@ -210,32 +210,15 @@ def main():
         tablet_message_id = None  # ذخیره message_id تبلت
         
         if brands:
-            raw_data = []
+            processed_data = []
             for i in range(len(brands)):
                 model_str = process_model(models[i])
-                try:
-                    price = float(model_str.replace(",", ""))
-                except:
-                    price = float('inf')  # برای مواردی که قیمت قابل تبدیل نیست
-                
-                brand = brands[i].strip()
-                if brand:
-                    full_text = f"{brand} {model_str}"
-                else:
-                    full_text = f"{model_str}"  # اگر برند نبود فقط قیمت چاپ بشه
-                
-                raw_data.append((price, full_text))
+                processed_data.append(f"{model_str} {brands[i]}")
 
-            # مرتب‌سازی بر اساس قیمت
-            raw_data.sort(key=lambda x: x[0])
-            
-            # چاپ خروجی مرتب‌شده برای بررسی
-            print("\n".join([f"{price:,} => {text}" for price, text in raw_data]))
-    
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
-            for _, full_text in raw_data:
-                decorated = decorate_line(full_text.strip())
+            for row in processed_data:
+                decorated = decorate_line(row)
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
@@ -297,4 +280,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
