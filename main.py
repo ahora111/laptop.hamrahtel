@@ -215,10 +215,6 @@ def main():
                 model_str = process_model(models[i])
                 try:
                     price = float(model_str.replace(",", ""))
-                except:
-                    price = float('inf')  # اگر عدد نبود، بذار ته لیست
-                full_text = f"{model_str} {brands[i]}"
-                processed_data.append((price, full_text))
 
             # مرتب‌سازی صعودی بر اساس قیمت
             processed_data.sort(key=lambda x: x[0])
