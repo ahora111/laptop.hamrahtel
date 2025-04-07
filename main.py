@@ -208,54 +208,47 @@ def main():
         iphone_message_id = None  # ذخیره message_id آیفون
         laptop_message_id = None  # ذخیره message_id لپ‌تاپ
         tablet_message_id = None  # ذخیره message_id تبلت
-        
-        if brands:
-processed_data = []
-for i in range(len(brands)):
-    model_str = process_model(models[i])
-    try:
-        # تبدیل قیمت به عدد برای مرتب‌سازی
-        price = float(model_str.replace(",", ""))
-    except ValueError:
-        price = float("inf")  # اگر قابل تبدیل نبود، در انتها قرار می‌گیرد
-    full_text = f"{model_str} {brands[i]}"
-    decorated = decorate_line(full_text)
-    processed_data.append((price, decorated))
+if brands:
+    processed_data = []
+    for i in range(len(brands)):
+        model_str = process_model(models[i])
+        try:
+            # تبدیل قیمت به عدد برای مرتب‌سازی
+            price = float(model_str.replace(",", ""))
+        except ValueError:
+            price = float("inf")  # اگر قابل تبدیل نبود، در انتها قرار می‌گیرد
+        full_text = f"{model_str} {brands[i]}"
+        decorated = decorate_line(full_text)
+        processed_data.append((price, decorated))
 
-# مرتب‌سازی بر اساس قیمت
-processed_data.sort(key=lambda x: x[0])
+    # مرتب‌سازی بر اساس قیمت
+    processed_data.sort(key=lambda x: x[0])
 
-# فقط متن مرتب‌شده‌ها
-message_lines = [item[1] for item in processed_data]
+    # فقط متن مرتب‌شده‌ها
+    message_lines = [item[1] for item in processed_data]
 
+    update_date = JalaliDate.today().strftime("%Y-%m-%d")
 
-            update_date = JalaliDate.today().strftime("%Y-%m-%d")
-            message_lines = []
-            for row in processed_data:
-                decorated = decorate_line(row)
-                message_lines.append(decorated)
+    categories = categorize_messages(message_lines)
 
-            categories = categorize_messages(message_lines)
+    for category, lines in categories.items():
+        if lines:
+            header, footer = get_header_footer(category, update_date)
+            message = header + "\n" + "\n".join(lines) + footer
+            msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
-            for category, lines in categories.items():
-                if lines:
-                    header, footer = get_header_footer(category, update_date)
-                    message = header + "\n" + "\n".join(lines) + footer
-                    msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
-
-                    if category == "🔵":  # ذخیره message_id سامسونگ
-                        samsung_message_id = msg_id
-                    elif category == "🟡":  # ذخیره message_id شیایومی
-                        xiaomi_message_id = msg_id
-                    elif category == "🍏":  # ذخیره message_id آیفون
-                        iphone_message_id = msg_id
-                    elif category == "💻":  # ذخیره message_id لپ‌تاپ
-                        laptop_message_id = msg_id
-                    elif category == "🟠":  # ذخیره message_id تبلت
-                        tablet_message_id = msg_id
-
-        else:
-            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
+            if category == "🔵":  # ذخیره message_id سامسونگ
+                samsung_message_id = msg_id
+            elif category == "🟡":  # ذخیره message_id شیایومی
+                xiaomi_message_id = msg_id
+            elif category == "🍏":  # ذخیره message_id آیفون
+                iphone_message_id = msg_id
+            elif category == "💻":  # ذخیره message_id لپ‌تاپ
+                laptop_message_id = msg_id
+            elif category == "🟠":  # ذخیره message_id تبلت
+                tablet_message_id = msg_id
+else:
+    logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
 
         if not samsung_message_id:
             logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
