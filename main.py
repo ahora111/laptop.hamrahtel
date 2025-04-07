@@ -213,7 +213,7 @@ def main():
             processed_data = []
             for i in range(len(brands)):
                 model_str = process_model(models[i])
-                processed_data.append(f"{model_str} {brands[i]}")
+                processed_data.append(f"{brands[i]} {models[i]} | {process_model(models[i])}")
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
