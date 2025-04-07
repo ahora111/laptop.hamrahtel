@@ -214,10 +214,10 @@ def main():
             for i in range(len(brands)):
                 model_str = process_model(models[i])
                 try:
-                    price = float(model_str.replace(",", ""))
+                price = float(model_str.replace(",", ""))
 
             # مرتب‌سازی صعودی بر اساس قیمت
-            processed_data.sort(key=lambda x: x[0])
+                processed_data.sort(key=lambda x: x[0])
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
