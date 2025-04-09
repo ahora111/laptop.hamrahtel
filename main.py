@@ -279,8 +279,8 @@ def main():
                     elif category == "🟠":  # ذخیره message_id تبلت
                         tablet_message_id = msg_id
 
-        else:
-            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
+            else:
+                logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
 
         if not samsung_message_id:
             logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
