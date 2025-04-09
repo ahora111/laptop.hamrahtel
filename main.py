@@ -99,8 +99,8 @@ def split_message(message, max_length=4000):
 
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻', '🟠', '🎮')):
-        return line
-    if any(keyword in line for keyword in ["Nartab", "Tab"]):
+        return line  
+    if any(keyword in line for keyword in ["Nartab", "Tab", "تبلت"]):
         return f"🟠 {line}"
     elif "Galaxy" in line:
         return f"🔵 {line}"
