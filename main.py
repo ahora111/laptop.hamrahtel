@@ -260,8 +260,6 @@ def main():
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(sorted_lines) + footer
                     send_telegram_message(message, BOT_TOKEN, CHAT_ID)
-        else:
-            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
             
                     if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
