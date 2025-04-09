@@ -64,7 +64,6 @@ def is_number(model_str):
         return False
 
 def process_model(model_str):
-    # حذف کاراکترهای غیرضروری و بررسی اینکه آیا مقدار عددی است
     model_str = model_str.replace("٬", "").replace(",", "").strip()
     if is_number(model_str):
         model_value = float(model_str)
@@ -82,8 +81,9 @@ def process_model(model_str):
         
         # گرد کردن مقدار به 5 رقم آخر
         model_value_with_increase = round(model_value_with_increase, -5)
-        return f"{model_value_with_increase:,.0f}"  # فرمت دهی عدد نهایی
+        return f"{model_value_with_increase:,.0f}"
     return model_str  # اگر مقدار عددی نباشد، همان مقدار اولیه بازگردانده می‌شود
+
 
 
 def escape_markdown(text):
