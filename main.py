@@ -67,7 +67,7 @@ def process_model(model_str):
     model_str = model_str.replace("٬", "").replace(",", "").strip()
     if is_number(model_str):
         model_value = float(model_str)
-        model_value_with_increase = model_value * 1.015
+        model_value_with_increase = round(model_value * 1.015, -5)  # گرد کردن به 5 رقم آخر
         return f"{model_value_with_increase:,.0f}"
     return model_str
 
