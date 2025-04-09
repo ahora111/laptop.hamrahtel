@@ -64,6 +64,7 @@ def is_number(model_str):
         return False
 
 def process_model(model_str):
+    # حذف کاراکترهای غیرضروری و بررسی اینکه آیا مقدار عددی است
     model_str = model_str.replace("٬", "").replace(",", "").strip()
     if is_number(model_str):
         model_value = float(model_str)
@@ -81,9 +82,8 @@ def process_model(model_str):
         
         # گرد کردن مقدار به 5 رقم آخر
         model_value_with_increase = round(model_value_with_increase, -5)
-        return f"{model_value_with_increase:,.0f}"
+        return f"{model_value_with_increase:,.0f}"  # فرمت دهی عدد نهایی
     return model_str  # اگر مقدار عددی نباشد، همان مقدار اولیه بازگردانده می‌شود
-
 
 
 def escape_markdown(text):
@@ -135,22 +135,6 @@ def categorize_messages(lines):
             categories[current_category].append(f"{line}")
 
     return categories
-
-
-def sort_category_by_value_with_order(category_lines):
-    def extract_number_with_order(line):
-        # استخراج عدد از هر خط و حفظ ترتیب اولیه
-        parts = line.split()
-        for part in parts:
-            if is_number(part.replace(",", "")):
-                return float(part.replace(",", ""))
-        return float('inf')  # اگر عددی پیدا نشد، مقدار بی‌نهایت برگرداند
-
-    # مرتب‌سازی پایدار با نگه داشتن ترتیب اولیه مدل‌ها
-    sorted_lines = sorted(enumerate(category_lines), key=lambda x: extract_number_with_order(x[1]))
-    return [line[1] for line in sorted_lines]
-
-
 
 def get_header_footer(category, update_date):
     headers = {
@@ -253,14 +237,13 @@ def main():
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
-            
+
             for category, lines in categories.items():
                 if lines:
-                    sorted_lines = sort_category_by_value_with_order(lines)  # مرتب‌سازی پایدار
                     header, footer = get_header_footer(category, update_date)
-                    message = header + "\n" + "\n".join(sorted_lines) + footer
-                    send_telegram_message(message, BOT_TOKEN, CHAT_ID)
-            
+                    message = header + "\n" + "\n".join(lines) + footer
+                    msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+
                     if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
                     elif category == "🟡":  # ذخیره message_id شیایومی
@@ -272,8 +255,8 @@ def main():
                     elif category == "🟠":  # ذخیره message_id تبلت
                         tablet_message_id = msg_id
 
-            else:
-                logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
+        else:
+            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
 
         if not samsung_message_id:
             logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
