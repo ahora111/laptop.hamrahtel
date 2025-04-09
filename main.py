@@ -253,15 +253,6 @@ def main():
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
-
-            for category, lines in categories.items():
-                if lines:
-                    sorted_lines = sort_category_by_value(lines)   # مرتب‌سازی خطوط دسته
-                    header, footer = get_header_footer(category, update_date)    # دریافت هدر و فوتر
-                    message = header + "\n" + "\n".join(sorted_lines) + footer    # ساخت پیام با خطوط مرتب‌شده
-                    send_telegram_message(message, BOT_TOKEN, CHAT_ID)   # ارسال پیام
-        else:
-            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
             
             for category, lines in categories.items():
                 if lines:
@@ -269,7 +260,9 @@ def main():
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(sorted_lines) + footer
                     send_telegram_message(message, BOT_TOKEN, CHAT_ID)
-
+        else:
+            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
+            
                     if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
                     elif category == "🟡":  # ذخیره message_id شیایومی
