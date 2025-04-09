@@ -260,7 +260,7 @@ def main():
                     message = header + "\n" + "\n".join(sorted_lines) + footer    # ساخت پیام با خطوط مرتب‌شده
                     send_telegram_message(message, BOT_TOKEN, CHAT_ID)   # ارسال پیام
         else:
-            logging.warning("
+            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
             
             for category, lines in categories.items():
                 if lines:
