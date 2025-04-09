@@ -64,12 +64,27 @@ def is_number(model_str):
         return False
 
 def process_model(model_str):
+    # حذف کاراکترهای غیرضروری و بررسی اینکه آیا مقدار عددی است
     model_str = model_str.replace("٬", "").replace(",", "").strip()
     if is_number(model_str):
         model_value = float(model_str)
-        model_value_with_increase = round(model_value * 1.015, -5)  # گرد کردن به 5 رقم آخر
-        return f"{model_value_with_increase:,.0f}"
-    return model_str
+        # اعمال درصدهای مختلف بر اساس بازه عددی
+        if model_value <= 10000000:
+            model_value_with_increase = model_value * 1.03
+        elif model_value <= 20000000:
+            model_value_with_increase = model_value * 1.025
+        elif model_value <= 30000000:
+            model_value_with_increase = model_value * 1.02
+        elif model_value <= 40000000:
+            model_value_with_increase = model_value * 1.015
+        else:  # مقادیر بالاتر از 40000000
+            model_value_with_increase = model_value * 1.015
+        
+        # گرد کردن مقدار به 5 رقم آخر
+        model_value_with_increase = round(model_value_with_increase, -5)
+        return f"{model_value_with_increase:,.0f}"  # فرمت دهی عدد نهایی
+    return model_str  # اگر مقدار عددی نباشد، همان مقدار اولیه بازگردانده می‌شود
+
 
 def escape_markdown(text):
     escape_chars = ['\\', '(', ')', '[', ']', '~', '*', '_', '-', '+', '>', '#', '.', '!', '|']
