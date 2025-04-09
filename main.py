@@ -137,18 +137,19 @@ def categorize_messages(lines):
     return categories
 
 
-def sort_category_by_value(category_lines):
-    def extract_number(line):
-        # استخراج عدد از هر خط
+def sort_category_by_value_with_order(category_lines):
+    def extract_number_with_order(line):
+        # استخراج عدد از هر خط و حفظ ترتیب اولیه
         parts = line.split()
         for part in parts:
             if is_number(part.replace(",", "")):
                 return float(part.replace(",", ""))
         return float('inf')  # اگر عددی پیدا نشد، مقدار بی‌نهایت برگرداند
 
-    # مرتب‌سازی بر اساس مقدار عددی
-    sorted_lines = sorted(category_lines, key=extract_number)
-    return sorted_lines
+    # مرتب‌سازی پایدار با نگه داشتن ترتیب اولیه مدل‌ها
+    sorted_lines = sorted(enumerate(category_lines), key=lambda x: extract_number_with_order(x[1]))
+    return [line[1] for line in sorted_lines]
+
 
 
 def get_header_footer(category, update_date):
@@ -264,9 +265,10 @@ def main():
             
             for category, lines in categories.items():
                 if lines:
+                    sorted_lines = sort_category_by_value_with_order(lines)  # مرتب‌سازی پایدار
                     header, footer = get_header_footer(category, update_date)
-                    message = header + "\n" + "\n".join(lines) + footer
-                    msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+                    message = header + "\n" + "\n".join(sorted_lines) + footer
+                    send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
                     if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
