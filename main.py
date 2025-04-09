@@ -70,7 +70,7 @@ def process_model(model_str):
         model_value = float(model_str)
         # اعمال درصدهای مختلف بر اساس بازه عددی
         if model_value <= 7000000:
-            model_value_with_increase = model_value * 1.04
+            model_value_with_increase = model_value + 260000
         elif model_value <= 10000000:
             model_value_with_increase = model_value * 1.035
         elif model_value <= 20000000:
