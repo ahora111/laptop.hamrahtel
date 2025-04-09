@@ -136,6 +136,21 @@ def categorize_messages(lines):
 
     return categories
 
+
+def sort_category_by_value(category_lines):
+    def extract_number(line):
+        # استخراج عدد از هر خط
+        parts = line.split()
+        for part in parts:
+            if is_number(part.replace(",", "")):
+                return float(part.replace(",", ""))
+        return float('inf')  # اگر عددی پیدا نشد، مقدار بی‌نهایت برگرداند
+
+    # مرتب‌سازی بر اساس مقدار عددی
+    sorted_lines = sorted(category_lines, key=extract_number)
+    return sorted_lines
+
+
 def get_header_footer(category, update_date):
     headers = {
         "🔵": f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n✅ لیست پخش موبایل اهورا\n⬅️ موجودی سامسونگ ➡️\n",
@@ -238,6 +253,15 @@ def main():
 
             categories = categorize_messages(message_lines)
 
+            for category, lines in categories.items():
+                if lines:
+                    sorted_lines = sort_category_by_value(lines)   # مرتب‌سازی خطوط دسته
+                    header, footer = get_header_footer(category, update_date)    # دریافت هدر و فوتر
+                    message = header + "\n" + "\n".join(sorted_lines) + footer    # ساخت پیام با خطوط مرتب‌شده
+                    send_telegram_message(message, BOT_TOKEN, CHAT_ID)   # ارسال پیام
+        else:
+            logging.warning("
+            
             for category, lines in categories.items():
                 if lines:
                     header, footer = get_header_footer(category, update_date)
