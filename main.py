@@ -245,49 +245,45 @@ def main():
         tablet_message_id = None  # ذخیره message_id تبلت
         console_message_id = None  # ذخیره message_id کنسول بازی
 
-
         if brands:
             processed_data = []
             for i in range(len(brands)):
                 model_str = process_model(models[i])
-                processed_data.append((model_str, brands[i]))  # داده‌ها را به صورت tuple ذخیره می‌کنیم
-
-            # مرتب‌سازی بر اساس قیمت (مدل پردازش شده)
-            processed_data.sort(key=lambda x: float(x[0].replace(",", "")) if is_number(x[0]) else float('inf'))
+                processed_data.append(f"{model_str} {brands[i]}")
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
             for row in processed_data:
-                decorated = decorate_line(f"{row[0]} {row[1]}")
+                decorated = decorate_line(row)
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
 
-            preferred_order = ["🔵", "🟡", "🍏", "🟣", "💻", "🟠", "🎮"]
-            for category in preferred_order:
-                lines = categories.get(category, [])
+            for category, lines in categories.items():
                 if lines:
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(lines) + footer
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
-
-                    if category == "🔵":
+                    if category == "🔵":  # ذخیره message_id سامسونگ
                         samsung_message_id = msg_id
-                    elif category == "🟡":
+                    elif category == "🟡":  # ذخیره message_id شیایومی
                         xiaomi_message_id = msg_id
-                    elif category == "🍏":
+                    elif category == "🍏":  # ذخیره message_id آیفون
                         iphone_message_id = msg_id
-                    elif category == "💻":
+                    elif category == "💻":  # ذخیره message_id لپ‌تاپ
                         laptop_message_id = msg_id
-                    elif category == "🟠":
+                    elif category == "🟠":  # ذخیره message_id تبلت
                         tablet_message_id = msg_id
-                    elif category == "🎮":
+                    elif category == "🎮":  # ذخیره message_id کنسول بازی
                         console_message_id = msg_id
+                        
+        else:
+            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
 
-            if not samsung_message_id:
-                logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
-                return
+        if not samsung_message_id:
+            logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
+            return
 
         # ✅ ارسال پیام نهایی + دکمه‌های لینک به پیام‌های مربوطه
         final_message = (
