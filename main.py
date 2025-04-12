@@ -249,12 +249,15 @@ def main():
             processed_data = []
             for i in range(len(brands)):
                 model_str = process_model(models[i])
-                processed_data.append(f"{model_str} {brands[i]}")
+                processed_data.append((model_str, brands[i]))  # داده‌ها را به صورت tuple ذخیره می‌کنیم
+
+            # مرتب‌سازی بر اساس قیمت (مدل پردازش شده)
+            processed_data.sort(key=lambda x: float(x[0].replace(",", "")) if is_number(x[0]) else float('inf'))
 
             update_date = JalaliDate.today().strftime("%Y-%m-%d")
             message_lines = []
             for row in processed_data:
-                decorated = decorate_line(row)
+                decorated = decorate_line(f"{row[0]} {row[1]}")
                 message_lines.append(decorated)
 
             categories = categorize_messages(message_lines)
@@ -265,7 +268,7 @@ def main():
                 if lines:
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(lines) + footer
-                    msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+                    send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
                     if category == "🔵":
                         samsung_message_id = msg_id
