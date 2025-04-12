@@ -245,6 +245,7 @@ def main():
         tablet_message_id = None  # ذخیره message_id تبلت
         console_message_id = None  # ذخیره message_id کنسول بازی
 
+
         if brands:
             processed_data = []
             for i in range(len(brands)):
@@ -269,6 +270,7 @@ def main():
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(lines) + footer
                     send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+
 
                     if category == "🔵":
                         samsung_message_id = msg_id
