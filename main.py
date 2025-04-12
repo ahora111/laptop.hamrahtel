@@ -244,7 +244,7 @@ def main():
         laptop_message_id = None  # ذخیره message_id لپ‌تاپ
         tablet_message_id = None  # ذخیره message_id تبلت
         console_message_id = None  # ذخیره message_id کنسول بازی
-        other_message_id = None
+
 
         if brands:
             processed_data = []
@@ -278,8 +278,6 @@ def main():
                         xiaomi_message_id = msg_id
                     elif category == "🍏":
                         iphone_message_id = msg_id
-                    elif category == "🟣":
-                        other_message_id = msg_id
                     elif category == "💻":
                         laptop_message_id = msg_id
                     elif category == "🟠":
