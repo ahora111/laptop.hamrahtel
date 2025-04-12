@@ -269,7 +269,7 @@ def main():
                 if lines:
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(lines) + footer
-                    send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+                    msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
 
                     if category == "🔵":
