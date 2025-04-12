@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from persiantools.jdatetime import JalaliDate
 
 BOT_TOKEN = "8187924543:AAH0jZJvZdpq_34um8R_yCyHQvkorxczXNQ"
-CHAT_ID = "-1002284274669"
+CHAT_ID = "-1002505490886"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -259,31 +259,32 @@ def main():
 
             categories = categorize_messages(message_lines)
 
-            for category, lines in categories.items():
+            preferred_order = ["🔵", "🟡", "🍏", "🟣", "💻", "🟠", "🎮"]
+            for category in preferred_order:
+                lines = categories.get(category, [])
                 if lines:
                     header, footer = get_header_footer(category, update_date)
                     message = header + "\n" + "\n".join(lines) + footer
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
 
-                    if category == "🔵":  # ذخیره message_id سامسونگ
+                    if category == "🔵":
                         samsung_message_id = msg_id
-                    elif category == "🟡":  # ذخیره message_id شیایومی
+                    elif category == "🟡":
                         xiaomi_message_id = msg_id
-                    elif category == "🍏":  # ذخیره message_id آیفون
+                    elif category == "🍏":
                         iphone_message_id = msg_id
-                    elif category == "💻":  # ذخیره message_id لپ‌تاپ
+                    elif category == "🟣":
+                        other_message_id = msg_id
+                    elif category == "💻":
                         laptop_message_id = msg_id
-                    elif category == "🟠":  # ذخیره message_id تبلت
+                    elif category == "🟠":
                         tablet_message_id = msg_id
-                    elif category == "🎮":  # ذخیره message_id کنسول بازی
+                    elif category == "🎮":
                         console_message_id = msg_id
-                        
-        else:
-            logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
 
-        if not samsung_message_id:
-            logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
-            return
+            if not samsung_message_id:
+                logging.error("❌ پیام سامسونگ ارسال نشد، دکمه اضافه نخواهد شد!")
+                return
 
         # ✅ ارسال پیام نهایی + دکمه‌های لینک به پیام‌های مربوطه
         final_message = (
