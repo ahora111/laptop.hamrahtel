@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from persiantools.jdatetime import JalaliDate
 
 BOT_TOKEN = "8187924543:AAH0jZJvZdpq_34um8R_yCyHQvkorxczXNQ"
-CHAT_ID = "-1002505490886"
+CHAT_ID = "-1002284274669"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
