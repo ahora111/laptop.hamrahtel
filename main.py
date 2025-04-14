@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from persiantools.jdatetime import JalaliDate
 
 BOT_TOKEN = "8187924543:AAH0jZJvZdpq_34um8R_yCyHQvkorxczXNQ"
-CHAT_ID = "-1002284274669"
+CHAT_ID = "-1002505490886"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -86,6 +86,7 @@ def process_model(model_str):
         model_value_with_increase = round(model_value_with_increase, -5)
         return f"{model_value_with_increase:,.0f}"  # فرمت دهی عدد نهایی
     return model_str  # اگر مقدار عددی نباشد، همان مقدار اولیه بازگردانده می‌شود
+
 
 def escape_markdown(text):
     escape_chars = ['\\', '(', ')', '[', ']', '~', '*', '_', '-', '+', '>', '#', '.', '!', '|']
@@ -162,19 +163,36 @@ def remove_extra_blank_lines(lines):
             cleaned_lines.append(line)
 
     return cleaned_lines
-
-
-# این تابع برای ساخت پیام نهایی به کار میره
+    
 def prepare_final_message(category_name, category_lines, update_date):
-    # گرفتن عنوان دسته از روی ایموجی
-    category_title = get_category_name(category_name)
+    # دریافت تاریخ امروز به شمسی
+    update_date = JalaliDate.today().strftime("%Y/%m/%d")
+    # تعریف نگاشت برای روزهای هفته به فارسی
+    weekday_mapping = {
+            "Saturday": "شنبه💪",
+            "Sunday": "یکشنبه😃",
+            "Monday": "دوشنبه🙂",
+            "Tuesday": "سه شنبه🥱",
+            "Wednesday": "چهارشنبه😕",
+            "Thursday": "پنج شنبه☺️",
+            "Friday": "جمعه😎"
+    }
+    weekday_english = JalaliDate.today().weekday()  # گرفتن ایندکس روز هفته
+    weekday_farsi = list(weekday_mapping.values())[weekday_english]  # تبدیل ایندکس به روز فارسی
+    update_date_formatted = f"{weekday_farsi} {update_date.replace('-', '/')}"
+
+    print(f"نام روز هفته به انگلیسی: {weekday_english}")
+    print(update_date_formatted)  # برای تست
 
     # ساخت هدر پیام
     header = (
-        f"📅 بروزرسانی قیمت در تاریخ {update_date} می باشد\n"
+        f"🗓 بروزرسانی {update_date_formatted}\n"
         f"✅ لیست پخش موبایل اهورا\n\n"
-        f"⬅️ موجودی {category_title} ➡️\n\n"
+        f"⬅️ موجودی {category_name} ➡️\n\n"
     )
+
+    # گرفتن عنوان دسته از روی ایموجی
+    category_title = get_category_name(category_name)
 
     formatted_lines = []
     current_product = None
@@ -213,7 +231,10 @@ def prepare_final_message(category_name, category_lines, update_date):
             formatted_lines.extend(product_variants)
 
     # حذف | از سطرهایی که ایموجی دارند
-    formatted_lines = [line for line in formatted_lines if not any(emoji in line for emoji in ["🔵", "🟡", "🍏", "🟣", "💻", "🟠", "🎮"]) or "|" not in line]
+    formatted_lines = [
+        line for line in formatted_lines
+        if not any(emoji in line for emoji in ["🔵", "🟡", "🍏", "🟣", "💻", "🟠", "🎮"]) or "|" not in line
+    ]
 
     footer = "\n\n☎️ شماره های تماس :\n📞 09371111558\n📞 02833991417"
     final_message = f"{header}" + "\n".join(formatted_lines) + f"{footer}"
@@ -289,6 +310,7 @@ def send_telegram_message(message, bot_token, chat_id, reply_markup=None):
     logging.info("✅ پیام ارسال شد!")
     return last_message_id  # برگشت message_id آخرین پیام
 
+
 def get_last_messages(bot_token, chat_id, limit=5):
     url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
     response = requests.get(url)
@@ -296,6 +318,7 @@ def get_last_messages(bot_token, chat_id, limit=5):
         messages = response.json().get("result", [])
         return [msg for msg in messages if "message" in msg][-limit:]
     return []
+
 
 def main():
     try:
@@ -364,6 +387,7 @@ def main():
                     # استفاده از تابع جدید برای آماده‌سازی پیام
                     message = prepare_final_message(category, lines, update_date)
                     msg_id = send_telegram_message(message, BOT_TOKEN, CHAT_ID)
+
 
                     if category == "🔵":
                         samsung_message_id = msg_id
