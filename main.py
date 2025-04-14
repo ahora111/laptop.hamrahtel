@@ -72,7 +72,7 @@ def process_model(model_str):
         if model_value <= 1:
             model_value_with_increase = model_value * 0
         elif model_value <= 7000000:
-            model_value_with_increase = model_value + 260000 
+            model_value_with_increase = model_value + 260000
         elif model_value <= 10000000:
             model_value_with_increase = model_value * 1.035
         elif model_value <= 20000000:
