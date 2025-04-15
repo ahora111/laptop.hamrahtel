@@ -6,7 +6,7 @@ import logging
 import json
 import pytz
 import sys
-from datetime import datetime, time
+from datetime import datetime, time as dt_time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -26,16 +26,16 @@ current_time = now.time()
 weekday = now.weekday()  # 0=دوشنبه، ..., 4=پنج‌شنبه، 5=جمعه, 6=شنبه
 
 # بازه مجاز در روزهای عادی
-start_time = time(9, 30)
-end_time = time(22, 30)
+start_time = dt_time(9, 30)
+end_time = dt_time(22, 30)
 
-# زمان‌های مجاز در جمعه (مثلاً 5 زمان خاص)
+# بازه زمانی روزهای خاص 
 friday_allowed_times = [
-    time(12, 0),
-    time(14, 0),
-    time(16, 0),
-    time(18, 0),
-    time(20, 0),
+    dt_time(12, 0),
+    dt_time(14, 0),
+    dt_time(16, 0),
+    dt_time(18, 0),
+    dt_time(20, 0),
 ]
 
 if weekday == 4:  # جمعه (در تقویم میلادی، جمعه=4 وقتی اول هفته رو شنبه بگیریم)
