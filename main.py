@@ -21,7 +21,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from persiantools.jdatetime import JalaliDate
 
-
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_NAME = 'Sheet1'
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
