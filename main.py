@@ -145,7 +145,7 @@ def decorate_line(line):
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی", "لپ تاپ"]):
         return f"💻 {line}"   
-    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "TCH", "ALCATEL"]): 
+    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]): 
         return f"🟣 {line}"
     elif any(keyword in line for keyword in ["Play Station", "کنسول بازی", "پلی استیشن", "بازی"]):
         return f"🎮 {line}"
@@ -523,10 +523,6 @@ def main():
                 should_send_final_message = True
         final_message = (
             "✅ لیست گوشی و سایر کالاهای بالا بروز میباشد. ثبت خرید تا ساعت 10:30 شب انجام میشود و تحویل کالا ساعت 11:30 صبح روز بعد می باشد..\n\n"
-            "✅اطلاعات واریز\n"
-            "🔷 شماره شبا : IR970560611828006154229701\n"
-            "🔷 شماره کارت : 6219861812467917\n"
-            "🔷 بلو بانک   حسین گرئی\n\n"
             "⭕️ حتما رسید واریز به ایدی تلگرام زیر ارسال شود .\n"
             "🆔 @lhossein1\n\n"
             "✅شماره تماس ثبت سفارش :\n"
