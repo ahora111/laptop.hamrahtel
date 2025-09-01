@@ -145,7 +145,7 @@ def decorate_line(line):
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی", "لپ تاپ"]):
         return f"💻 {line}"   
-    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]): 
+    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]): 
         return f"🟣 {line}"
     elif any(keyword in line for keyword in ["Play Station", "کنسول بازی", "پلی استیشن", "بازی"]):
         return f"🎮 {line}"
