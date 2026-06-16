@@ -11,7 +11,7 @@ import gspread
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, time as dt_time
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 from persiantools.jdatetime import JalaliDate
 
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
@@ -30,153 +30,127 @@ if not (start_time <= current_time_now <= end_time):
     print("🕒 خارج از بازه مجاز اجرا (۹:۳۰ تا ۲۳:۳۰). اسکریپت متوقف شد.")
     sys.exit()
 
-# ===== تنظیمات Session با هدرهای واقعی =====
-def get_session():
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Referer": "https://hamrahtel.com/",
-        "Origin": "https://hamrahtel.com",
-    })
-    return session
+def extract_product_data_playwright(page, valid_brands):
+    """استخراج داده با Playwright"""
+    try:
+        # صبر برای لود شدن محتوا
+        page.wait_for_selector('[class*="mantine-Text"]', timeout=60000)
+        time.sleep(3)
 
-def fetch_products_api(session, category, retries=3):
-    """دریافت محصولات از API سایت"""
-    
-    # آدرس‌های احتمالی API
-    api_urls = [
-        f"https://hamrahtel.com/quick-checkout?category={category}",
-        f"https://hamrahtel.com/quick-checkout?category={category}",
-        f"https://hamrahtel.com/quick-checkout?category={category}",
-    ]
-    
-    for attempt in range(retries):
-        for api_url in api_urls:
-            try:
-                logging.info(f"🔄 تلاش {attempt+1} - دریافت داده از: {api_url}")
-                response = session.get(api_url, timeout=30)
-                
-                if response.status_code == 200:
-                    logging.info(f"✅ داده دریافت شد از: {api_url}")
-                    return response
-                else:
-                    logging.warning(f"⚠️ وضعیت {response.status_code} از {api_url}")
-                    
-            except Exception as e:
-                logging.warning(f"⚠️ خطا در تلاش {attempt+1}: {e}")
-                time.sleep(3)
-    
-    return None
+        # اسکرول صفحه برای لود کامل
+        prev_height = 0
+        for _ in range(10):
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(2)
+            new_height = page.evaluate("document.body.scrollHeight")
+            if new_height == prev_height:
+                break
+            prev_height = new_height
 
-def parse_html_response(response_text, valid_brands):
-    """پارس کردن HTML صفحه"""
-    soup = BeautifulSoup(response_text, 'html.parser')
-    brands, models = [], []
-    
-    # جستجو برای عناصر مختلف
-    elements = soup.find_all(class_=lambda x: x and 'mantine-Text' in x)
-    
-    for element in elements:
-        name = element.get_text(strip=True)
-        name = name.replace("تومانءء", "").replace("تومان", "").replace("نامشخص", "").replace("جستجو در مدل‌ها", "").strip()
-        
-        if not name:
-            continue
-            
-        parts = name.split()
-        brand = parts[0] if len(parts) >= 2 else name
-        model = " ".join(parts[1:]) if len(parts) >= 2 else ""
-        
-        if brand in valid_brands:
-            brands.append(brand)
-            models.append(model)
-        else:
-            models.append(brand + " " + model)
-            brands.append("")
-    
-    return brands[25:], models[25:]
+        # دریافت تمام عناصر متنی
+        elements = page.query_selector_all('[class*="mantine-Text"]')
+        logging.info(f"تعداد عناصر یافت شده: {len(elements)}")
 
-def parse_json_response(data, valid_brands):
-    """پارس کردن پاسخ JSON"""
-    brands, models = [], []
-    
-    # ساختارهای مختلف JSON را امتحان می‌کنیم
-    items = []
-    if isinstance(data, list):
-        items = data
-    elif isinstance(data, dict):
-        items = data.get('data', data.get('products', data.get('items', [])))
-    
-    for item in items:
-        if isinstance(item, dict):
-            name = item.get('name', item.get('title', item.get('product_name', '')))
-            price = item.get('price', item.get('amount', ''))
-            
-            if name:
-                parts = name.split()
-                brand = parts[0] if len(parts) >= 2 else name
-                model_parts = parts[1:] if len(parts) >= 2 else []
-                
-                if price:
-                    model_parts.append(str(price))
-                
-                model = " ".join(model_parts)
-                
-                if brand in valid_brands:
-                    brands.append(brand)
-                    models.append(model)
-                else:
-                    models.append(brand + " " + model)
-                    brands.append("")
-    
-    return brands, models
+        brands, models = [], []
+        for element in elements:
+            name = element.inner_text().strip()
+            name = (name.replace("تومانءء", "")
+                       .replace("تومان", "")
+                       .replace("نامشخص", "")
+                       .replace("جستجو در مدل‌ها", "")
+                       .strip())
+
+            if not name:
+                continue
+
+            parts = name.split()
+            brand = parts[0] if len(parts) >= 2 else name
+            model = " ".join(parts[1:]) if len(parts) >= 2 else ""
+
+            if brand in valid_brands:
+                brands.append(brand)
+                models.append(model)
+            else:
+                models.append(brand + " " + model)
+                brands.append("")
+
+        return brands[25:], models[25:]
+
+    except PlaywrightTimeout:
+        logging.error("❌ Timeout در استخراج داده")
+        return [], []
+    except Exception as e:
+        logging.error(f"❌ خطا در استخراج: {e}")
+        return [], []
 
 def fetch_all_products(valid_brands):
-    """دریافت تمام محصولات از همه دسته‌بندی‌ها"""
-    session = get_session()
-    
-    categories = {
-        "mobile": "mobile",
-        "laptop": "laptop", 
-        "tablet": "tablet",
-        "console": "game-console"
+    """دریافت همه محصولات با Playwright"""
+    categories_urls = {
+        "mobile": "https://hamrahtel.com/quick-checkout?category=mobile",
+        "laptop": "https://hamrahtel.com/quick-checkout?category=laptop",
+        "tablet": "https://hamrahtel.com/quick-checkout?category=tablet",
+        "console": "https://hamrahtel.com/quick-checkout?category=game-console"
     }
-    
+
     all_brands, all_models = [], []
-    
-    for name, category in categories.items():
-        logging.info(f"📦 دریافت داده دسته: {name}")
-        
-        response = fetch_products_api(session, category)
-        
-        if response is None:
-            logging.warning(f"⚠️ دسته {name} داده‌ای نداشت.")
-            continue
-        
-        # بررسی نوع محتوا
-        content_type = response.headers.get('Content-Type', '')
-        
-        if 'application/json' in content_type:
-            try:
-                data = response.json()
-                b, m = parse_json_response(data, valid_brands)
-                logging.info(f"✅ JSON پارس شد: {len(b)} آیتم از {name}")
-            except Exception as e:
-                logging.warning(f"⚠️ خطا در پارس JSON: {e}")
-                b, m = parse_html_response(response.text, valid_brands)
-        else:
-            b, m = parse_html_response(response.text, valid_brands)
-            logging.info(f"✅ HTML پارس شد: {len(b)} آیتم از {name}")
-        
-        all_brands.extend(b)
-        all_models.extend(m)
-        
-        time.sleep(2)  # تاخیر بین درخواست‌ها
-    
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-setuid-sandbox",
+                "--disable-blink-features=AutomationControlled",
+            ]
+        )
+
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            locale="fa-IR",
+            extra_http_headers={
+                "Accept-Language": "fa-IR,fa;q=0.9,en-US;q=0.8",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            }
+        )
+
+        page = context.new_page()
+        page.set_default_timeout(120000)
+
+        for name, url in categories_urls.items():
+            logging.info(f"📦 دریافت داده دسته: {name} - {url}")
+            success = False
+
+            for attempt in range(3):
+                try:
+                    logging.info(f"🔄 تلاش {attempt + 1} برای {name}")
+                    page.goto(url, wait_until="domcontentloaded", timeout=90000)
+                    time.sleep(5)
+
+                    b, m = extract_product_data_playwright(page, valid_brands)
+
+                    if b or m:
+                        all_brands.extend(b)
+                        all_models.extend(m)
+                        logging.info(f"✅ {name}: {len(b)} آیتم استخراج شد")
+                        success = True
+                        break
+                    else:
+                        logging.warning(f"⚠️ تلاش {attempt + 1}: داده‌ای یافت نشد برای {name}")
+
+                except Exception as e:
+                    logging.warning(f"⚠️ خطا در تلاش {attempt + 1} برای {name}: {e}")
+                    time.sleep(5)
+
+            if not success:
+                logging.error(f"❌ دریافت داده {name} ناموفق بود")
+
+            time.sleep(3)
+
+        browser.close()
+
     return all_brands, all_models
 
 def is_number(model_str):
@@ -576,12 +550,10 @@ def main():
             "GLX", "+Otel", "اینچی"
         ]
 
-        # دریافت داده بدون Selenium
         brands, models = fetch_all_products(valid_brands)
 
         if not brands:
             logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
-            # ارسال پیام خطا به تلگرام
             send_telegram_message(
                 "⚠️ خطا: سایت hamrahtel.com در دسترس نیست یا داده‌ای یافت نشد.",
                 BOT_TOKEN, CHAT_ID
