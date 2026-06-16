@@ -10,8 +10,13 @@ import base64
 import gspread
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 from datetime import datetime, time as dt_time
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from persiantools.jdatetime import JalaliDate
 
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
@@ -23,161 +28,51 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 iran_tz = pytz.timezone('Asia/Tehran')
 now = datetime.now(iran_tz)
-current_time_now = now.time()
+current_time = now.time()
 start_time = dt_time(9, 30)
 end_time = dt_time(23, 30)
-if not (start_time <= current_time_now <= end_time):
+if not (start_time <= current_time <= end_time):
     print("🕒 خارج از بازه مجاز اجرا (۹:۳۰ تا ۲۳:۳۰). اسکریپت متوقف شد.")
     sys.exit()
 
-# ===== تنظیمات Session با هدرهای واقعی =====
-def get_session():
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Referer": "https://hamrahtel.com/",
-        "Origin": "https://hamrahtel.com",
-    })
-    return session
+def get_driver():
+    try:
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        service = Service()
+        driver = webdriver.Chrome(service=service, options=options)
+        return driver
+    except Exception as e:
+        logging.error(f"خطا در ایجاد WebDriver: {e}")
+        return None
 
-def fetch_products_api(session, category, retries=3):
-    """دریافت محصولات از API سایت"""
-    
-    # آدرس‌های احتمالی API
-    api_urls = [
-        f"https://hamrahtel.com/quick-checkout?category={category}",
-        f"https://hamrahtel.com/quick-checkout?category={category}",
-        f"https://hamrahtel.com/quick-checkout?category={category}",
-    ]
-    
-    for attempt in range(retries):
-        for api_url in api_urls:
-            try:
-                logging.info(f"🔄 تلاش {attempt+1} - دریافت داده از: {api_url}")
-                response = session.get(api_url, timeout=30)
-                
-                if response.status_code == 200:
-                    logging.info(f"✅ داده دریافت شد از: {api_url}")
-                    return response
-                else:
-                    logging.warning(f"⚠️ وضعیت {response.status_code} از {api_url}")
-                    
-            except Exception as e:
-                logging.warning(f"⚠️ خطا در تلاش {attempt+1}: {e}")
-                time.sleep(3)
-    
-    return None
+def scroll_page(driver, scroll_pause_time=2):
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(scroll_pause_time)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
 
-def parse_html_response(response_text, valid_brands):
-    """پارس کردن HTML صفحه"""
-    soup = BeautifulSoup(response_text, 'html.parser')
+def extract_product_data(driver, valid_brands):
+    product_elements = driver.find_elements(By.CLASS_NAME, 'mantine-Text-root')
     brands, models = [], []
-    
-    # جستجو برای عناصر مختلف
-    elements = soup.find_all(class_=lambda x: x and 'mantine-Text' in x)
-    
-    for element in elements:
-        name = element.get_text(strip=True)
-        name = name.replace("تومانءء", "").replace("تومان", "").replace("نامشخص", "").replace("جستجو در مدل‌ها", "").strip()
-        
-        if not name:
-            continue
-            
+    for product in product_elements:
+        name = product.text.strip().replace("تومانءء", "").replace("تومان", "").replace("نامشخص", "").replace("جستجو در مدل‌ها", "").strip()
         parts = name.split()
         brand = parts[0] if len(parts) >= 2 else name
         model = " ".join(parts[1:]) if len(parts) >= 2 else ""
-        
         if brand in valid_brands:
             brands.append(brand)
             models.append(model)
         else:
             models.append(brand + " " + model)
             brands.append("")
-    
     return brands[25:], models[25:]
-
-def parse_json_response(data, valid_brands):
-    """پارس کردن پاسخ JSON"""
-    brands, models = [], []
-    
-    # ساختارهای مختلف JSON را امتحان می‌کنیم
-    items = []
-    if isinstance(data, list):
-        items = data
-    elif isinstance(data, dict):
-        items = data.get('data', data.get('products', data.get('items', [])))
-    
-    for item in items:
-        if isinstance(item, dict):
-            name = item.get('name', item.get('title', item.get('product_name', '')))
-            price = item.get('price', item.get('amount', ''))
-            
-            if name:
-                parts = name.split()
-                brand = parts[0] if len(parts) >= 2 else name
-                model_parts = parts[1:] if len(parts) >= 2 else []
-                
-                if price:
-                    model_parts.append(str(price))
-                
-                model = " ".join(model_parts)
-                
-                if brand in valid_brands:
-                    brands.append(brand)
-                    models.append(model)
-                else:
-                    models.append(brand + " " + model)
-                    brands.append("")
-    
-    return brands, models
-
-def fetch_all_products(valid_brands):
-    """دریافت تمام محصولات از همه دسته‌بندی‌ها"""
-    session = get_session()
-    
-    categories = {
-        "mobile": "mobile",
-        "laptop": "laptop", 
-        "tablet": "tablet",
-        "console": "game-console"
-    }
-    
-    all_brands, all_models = [], []
-    
-    for name, category in categories.items():
-        logging.info(f"📦 دریافت داده دسته: {name}")
-        
-        response = fetch_products_api(session, category)
-        
-        if response is None:
-            logging.warning(f"⚠️ دسته {name} داده‌ای نداشت.")
-            continue
-        
-        # بررسی نوع محتوا
-        content_type = response.headers.get('Content-Type', '')
-        
-        if 'application/json' in content_type:
-            try:
-                data = response.json()
-                b, m = parse_json_response(data, valid_brands)
-                logging.info(f"✅ JSON پارس شد: {len(b)} آیتم از {name}")
-            except Exception as e:
-                logging.warning(f"⚠️ خطا در پارس JSON: {e}")
-                b, m = parse_html_response(response.text, valid_brands)
-        else:
-            b, m = parse_html_response(response.text, valid_brands)
-            logging.info(f"✅ HTML پارس شد: {len(b)} آیتم از {name}")
-        
-        all_brands.extend(b)
-        all_models.extend(m)
-        
-        time.sleep(2)  # تاخیر بین درخواست‌ها
-    
-    return all_brands, all_models
 
 def is_number(model_str):
     try:
@@ -221,12 +116,14 @@ def split_message_by_emoji_group(message, max_length=4000):
     group = ""
     for line in lines:
         if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻', '🟠', '🎮')):
+            # اگر گروه فعلی با اضافه کردن گروه جدید از حد مجاز بیشتر می‌شود، پارت جدید بساز
             if current and len(current) + len(group) > max_length:
                 parts.append(current.rstrip('\n'))
                 current = ""
             current += group
             group = ""
         group += line + '\n'
+    # اضافه کردن آخرین گروه
     if current and len(current) + len(group) > max_length:
         parts.append(current.rstrip('\n'))
         current = ""
@@ -237,7 +134,7 @@ def split_message_by_emoji_group(message, max_length=4000):
 
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻', '🟠', '🎮')):
-        return line
+        return line  
     if any(keyword in line for keyword in ["Nartab", "Tab", "تبلت"]):
         return f"🟠 {line}"
     elif "Galaxy" in line:
@@ -247,8 +144,8 @@ def decorate_line(line):
     elif "iPhone" in line:
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی", "لپ تاپ"]):
-        return f"💻 {line}"
-    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]):
+        return f"💻 {line}"   
+    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]): 
         return f"🟣 {line}"
     elif any(keyword in line for keyword in ["Play Station", "کنسول بازی", "پلی استیشن", "بازی"]):
         return f"🎮 {line}"
@@ -296,20 +193,21 @@ def remove_extra_blank_lines(lines):
 def get_current_time():
     iran_tz = timezone('Asia/Tehran')
     iran_time = datetime.now(iran_tz)
-    return iran_time.strftime('%H:%M')
+    current_time = iran_time.strftime('%H:%M')
+    return current_time
 
 def prepare_final_message(category_name, category_lines, update_date):
     category_title = get_category_name(category_name)
     update_date = JalaliDate.today().strftime("%Y/%m/%d")
     current_time = get_current_time()
     weekday_mapping = {
-        "Saturday": "شنبه💪",
-        "Sunday": "یکشنبه😃",
-        "Monday": "دوشنبه☺️",
-        "Tuesday": "سه شنبه🥱",
-        "Wednesday": "چهارشنبه😕",
-        "Thursday": "پنج شنبه☺️",
-        "Friday": "جمعه😎"
+            "Saturday": "شنبه💪",
+            "Sunday": "یکشنبه😃",
+            "Monday": "دوشنبه☺️",
+            "Tuesday": "سه شنبه🥱",
+            "Wednesday": "چهارشنبه😕",
+            "Thursday": "پنج شنبه☺️",
+            "Friday": "جمعه😎"
     }
     weekday_english = JalaliDate.today().weekday()
     weekday_farsi = list(weekday_mapping.values())[weekday_english]
@@ -545,9 +443,19 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
             logging.info("✅ پیام نهایی ویرایش شد.")
             return message_id
         else:
-            logging.warning("❌ خطا در ویرایش پیام نهایی.")
+            logging.warning("❌ خطا در ویرایش پیام نهایی، حذف پیام قبلی و ارسال پیام جدید.")
+            # حذف پیام قبلی
             del_url = f"https://api.telegram.org/bot{bot_token}/deleteMessage"
-            requests.post(del_url, json={"chat_id": chat_id, "message_id": message_id})
+            del_params = {
+                "chat_id": chat_id,
+                "message_id": message_id
+            }
+            del_response = requests.post(del_url, json=del_params)
+            if del_response.ok:
+                logging.info("✅ پیام نهایی قبلی حذف شد.")
+            else:
+                logging.warning("❌ حذف پیام نهایی قبلی موفق نبود: %s", del_response.text)
+    # ارسال پیام جدید
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     params = {
         "chat_id": chat_id,
@@ -569,36 +477,38 @@ def main():
     try:
         sheet = connect_to_sheet()
         check_and_create_headers(sheet)
-
-        valid_brands = [
-            "Galaxy", "POCO", "Redmi", "iPhone", "Redtone",
-            "VOCAL", "TCL", "NOKIA", "Honor", "Huawei",
-            "GLX", "+Otel", "اینچی"
-        ]
-
-        # دریافت داده بدون Selenium
-        brands, models = fetch_all_products(valid_brands)
-
+        driver = get_driver()
+        if not driver:
+            logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
+            return
+        categories_urls = {
+            "mobile": "https://hamrahtel.com/quick-checkout?category=mobile",
+            "laptop": "https://hamrahtel.com/quick-checkout?category=laptop",
+            "tablet": "https://hamrahtel.com/quick-checkout?category=tablet",
+            "console": "https://hamrahtel.com/quick-checkout?category=game-console"
+        }
+        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "اینچی"]
+        brands, models = [], []
+        for name, url in categories_urls.items():
+            driver.get(url)
+            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+            scroll_page(driver)
+            b, m = extract_product_data(driver, valid_brands)
+            brands.extend(b)
+            models.extend(m)
+        driver.quit()
         if not brands:
             logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
-            # ارسال پیام خطا به تلگرام
-            send_telegram_message(
-                "⚠️ خطا: سایت hamrahtel.com در دسترس نیست یا داده‌ای یافت نشد.",
-                BOT_TOKEN, CHAT_ID
-            )
             return
-
         processed_data = []
         for i in range(len(brands)):
             model_str = process_model(models[i])
             processed_data.append(f"{model_str} {brands[i]}")
-
         message_lines = [decorate_line(row) for row in processed_data]
         categorized = categorize_messages(message_lines)
         today = JalaliDate.today().strftime("%Y-%m-%d")
         all_message_ids = {}
         should_send_final_message = False
-
         for emoji, lines in categorized.items():
             if not lines:
                 continue
@@ -611,7 +521,6 @@ def main():
             all_message_ids[emoji] = message_ids
             if changed:
                 should_send_final_message = True
-
         final_message = (
             "✅ لیست گوشی و سایر کالاهای بالا بروز میباشد. ثبت خرید تا ساعت 10:30 شب انجام میشود و تحویل کالا ساعت 11:30 صبح روز بعد می باشد..\n\n"
             "⭕️ حتما رسید واریز به ایدی تلگرام زیر ارسال شود .\n"
@@ -639,11 +548,8 @@ def main():
                         {"text": emoji_labels.get(emoji, emoji), "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{msg_id}"}
                     ])
         send_or_edit_final_message(sheet, final_message, BOT_TOKEN, CHAT_ID, button_markup, should_send_final_message)
-
     except Exception as e:
         logging.error(f"❌ خطا: {e}")
-        import traceback
-        traceback.print_exc()
 
 if __name__ == "__main__":
     main()
