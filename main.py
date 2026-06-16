@@ -8,6 +8,7 @@ import pytz
 import sys
 import base64
 import gspread
+import chromedriver_autoinstaller
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
@@ -37,12 +38,21 @@ if not (start_time <= current_time <= end_time):
 
 def get_driver():
     try:
+        chromedriver_autoinstaller.install()
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        service = Service()
-        driver = webdriver.Chrome(service=service, options=options)
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-setuid-sandbox")
+        options.add_argument("--remote-debugging-port=9222")
+        options.add_argument("--disable-software-rasterizer")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(60)
         return driver
     except Exception as e:
         logging.error(f"خطا در ایجاد WebDriver: {e}")
@@ -116,14 +126,12 @@ def split_message_by_emoji_group(message, max_length=4000):
     group = ""
     for line in lines:
         if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻', '🟠', '🎮')):
-            # اگر گروه فعلی با اضافه کردن گروه جدید از حد مجاز بیشتر می‌شود، پارت جدید بساز
             if current and len(current) + len(group) > max_length:
                 parts.append(current.rstrip('\n'))
                 current = ""
             current += group
             group = ""
         group += line + '\n'
-    # اضافه کردن آخرین گروه
     if current and len(current) + len(group) > max_length:
         parts.append(current.rstrip('\n'))
         current = ""
@@ -134,7 +142,7 @@ def split_message_by_emoji_group(message, max_length=4000):
 
 def decorate_line(line):
     if line.startswith(('🔵', '🟡', '🍏', '🟣', '💻', '🟠', '🎮')):
-        return line  
+        return line
     if any(keyword in line for keyword in ["Nartab", "Tab", "تبلت"]):
         return f"🟠 {line}"
     elif "Galaxy" in line:
@@ -144,8 +152,8 @@ def decorate_line(line):
     elif "iPhone" in line:
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی", "لپ تاپ"]):
-        return f"💻 {line}"   
-    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]): 
+        return f"💻 {line}"
+    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]):
         return f"🟣 {line}"
     elif any(keyword in line for keyword in ["Play Station", "کنسول بازی", "پلی استیشن", "بازی"]):
         return f"🎮 {line}"
@@ -201,13 +209,13 @@ def prepare_final_message(category_name, category_lines, update_date):
     update_date = JalaliDate.today().strftime("%Y/%m/%d")
     current_time = get_current_time()
     weekday_mapping = {
-            "Saturday": "شنبه💪",
-            "Sunday": "یکشنبه😃",
-            "Monday": "دوشنبه☺️",
-            "Tuesday": "سه شنبه🥱",
-            "Wednesday": "چهارشنبه😕",
-            "Thursday": "پنج شنبه☺️",
-            "Friday": "جمعه😎"
+        "Saturday": "شنبه💪",
+        "Sunday": "یکشنبه😃",
+        "Monday": "دوشنبه☺️",
+        "Tuesday": "سه شنبه🥱",
+        "Wednesday": "چهارشنبه😕",
+        "Thursday": "پنج شنبه☺️",
+        "Friday": "جمعه😎"
     }
     weekday_english = JalaliDate.today().weekday()
     weekday_farsi = list(weekday_mapping.values())[weekday_english]
@@ -444,7 +452,6 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
             return message_id
         else:
             logging.warning("❌ خطا در ویرایش پیام نهایی، حذف پیام قبلی و ارسال پیام جدید.")
-            # حذف پیام قبلی
             del_url = f"https://api.telegram.org/bot{bot_token}/deleteMessage"
             del_params = {
                 "chat_id": chat_id,
@@ -455,7 +462,6 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
                 logging.info("✅ پیام نهایی قبلی حذف شد.")
             else:
                 logging.warning("❌ حذف پیام نهایی قبلی موفق نبود: %s", del_response.text)
-    # ارسال پیام جدید
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     params = {
         "chat_id": chat_id,
