@@ -8,16 +8,10 @@ import pytz
 import sys
 import base64
 import gspread
-import chromedriver_autoinstaller
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
 from datetime import datetime, time as dt_time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
 from persiantools.jdatetime import JalaliDate
 
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
@@ -29,74 +23,161 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 iran_tz = pytz.timezone('Asia/Tehran')
 now = datetime.now(iran_tz)
-current_time = now.time()
+current_time_now = now.time()
 start_time = dt_time(9, 30)
 end_time = dt_time(23, 30)
-if not (start_time <= current_time <= end_time):
+if not (start_time <= current_time_now <= end_time):
     print("🕒 خارج از بازه مجاز اجرا (۹:۳۰ تا ۲۳:۳۰). اسکریپت متوقف شد.")
     sys.exit()
 
-def get_driver():
-    try:
-        chromedriver_autoinstaller.install()
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless=new")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-setuid-sandbox")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--disable-infobars")
-        options.add_argument("--disable-notifications")
-        options.add_argument("--ignore-certificate-errors")
-        options.add_argument("--allow-running-insecure-content")
-        options.add_argument("--disable-web-security")
-        options.add_argument("--memory-pressure-off")
-        options.add_argument("--max_old_space_size=4096")
-        options.add_argument("--single-process")
-        options.add_argument("--disable-features=VizDisplayCompositor")
-        options.add_argument("--disable-renderer-backgrounding")
-        options.add_argument("--disable-backgrounding-occluded-windows")
-        options.add_argument("--disable-ipc-flooding-protection")
-        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option("useAutomationExtension", False)
+# ===== تنظیمات Session با هدرهای واقعی =====
+def get_session():
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Referer": "https://hamrahtel.com/",
+        "Origin": "https://hamrahtel.com",
+    })
+    return session
 
-        driver = webdriver.Chrome(options=options)
-        driver.set_page_load_timeout(120)
-        driver.set_script_timeout(120)
-        return driver
-    except Exception as e:
-        logging.error(f"خطا در ایجاد WebDriver: {e}")
-        return None
+def fetch_products_api(session, category, retries=3):
+    """دریافت محصولات از API سایت"""
+    
+    # آدرس‌های احتمالی API
+    api_urls = [
+        f"https://hamrahtel.com/api/products?category={category}",
+        f"https://hamrahtel.com/api/v1/products?category={category}",
+        f"https://hamrahtel.com/quick-checkout?category={category}",
+    ]
+    
+    for attempt in range(retries):
+        for api_url in api_urls:
+            try:
+                logging.info(f"🔄 تلاش {attempt+1} - دریافت داده از: {api_url}")
+                response = session.get(api_url, timeout=30)
+                
+                if response.status_code == 200:
+                    logging.info(f"✅ داده دریافت شد از: {api_url}")
+                    return response
+                else:
+                    logging.warning(f"⚠️ وضعیت {response.status_code} از {api_url}")
+                    
+            except Exception as e:
+                logging.warning(f"⚠️ خطا در تلاش {attempt+1}: {e}")
+                time.sleep(3)
+    
+    return None
 
-def scroll_page(driver, scroll_pause_time=3):
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(scroll_pause_time)
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
-
-def extract_product_data(driver, valid_brands):
-    product_elements = driver.find_elements(By.CLASS_NAME, 'mantine-Text-root')
+def parse_html_response(response_text, valid_brands):
+    """پارس کردن HTML صفحه"""
+    soup = BeautifulSoup(response_text, 'html.parser')
     brands, models = [], []
-    for product in product_elements:
-        name = product.text.strip().replace("تومانءء", "").replace("تومان", "").replace("نامشخص", "").replace("جستجو در مدل‌ها", "").strip()
+    
+    # جستجو برای عناصر مختلف
+    elements = soup.find_all(class_=lambda x: x and 'mantine-Text' in x)
+    
+    for element in elements:
+        name = element.get_text(strip=True)
+        name = name.replace("تومانءء", "").replace("تومان", "").replace("نامشخص", "").replace("جستجو در مدل‌ها", "").strip()
+        
+        if not name:
+            continue
+            
         parts = name.split()
         brand = parts[0] if len(parts) >= 2 else name
         model = " ".join(parts[1:]) if len(parts) >= 2 else ""
+        
         if brand in valid_brands:
             brands.append(brand)
             models.append(model)
         else:
             models.append(brand + " " + model)
             brands.append("")
+    
     return brands[25:], models[25:]
+
+def parse_json_response(data, valid_brands):
+    """پارس کردن پاسخ JSON"""
+    brands, models = [], []
+    
+    # ساختارهای مختلف JSON را امتحان می‌کنیم
+    items = []
+    if isinstance(data, list):
+        items = data
+    elif isinstance(data, dict):
+        items = data.get('data', data.get('products', data.get('items', [])))
+    
+    for item in items:
+        if isinstance(item, dict):
+            name = item.get('name', item.get('title', item.get('product_name', '')))
+            price = item.get('price', item.get('amount', ''))
+            
+            if name:
+                parts = name.split()
+                brand = parts[0] if len(parts) >= 2 else name
+                model_parts = parts[1:] if len(parts) >= 2 else []
+                
+                if price:
+                    model_parts.append(str(price))
+                
+                model = " ".join(model_parts)
+                
+                if brand in valid_brands:
+                    brands.append(brand)
+                    models.append(model)
+                else:
+                    models.append(brand + " " + model)
+                    brands.append("")
+    
+    return brands, models
+
+def fetch_all_products(valid_brands):
+    """دریافت تمام محصولات از همه دسته‌بندی‌ها"""
+    session = get_session()
+    
+    categories = {
+        "mobile": "mobile",
+        "laptop": "laptop", 
+        "tablet": "tablet",
+        "console": "game-console"
+    }
+    
+    all_brands, all_models = [], []
+    
+    for name, category in categories.items():
+        logging.info(f"📦 دریافت داده دسته: {name}")
+        
+        response = fetch_products_api(session, category)
+        
+        if response is None:
+            logging.warning(f"⚠️ دسته {name} داده‌ای نداشت.")
+            continue
+        
+        # بررسی نوع محتوا
+        content_type = response.headers.get('Content-Type', '')
+        
+        if 'application/json' in content_type:
+            try:
+                data = response.json()
+                b, m = parse_json_response(data, valid_brands)
+                logging.info(f"✅ JSON پارس شد: {len(b)} آیتم از {name}")
+            except Exception as e:
+                logging.warning(f"⚠️ خطا در پارس JSON: {e}")
+                b, m = parse_html_response(response.text, valid_brands)
+        else:
+            b, m = parse_html_response(response.text, valid_brands)
+            logging.info(f"✅ HTML پارس شد: {len(b)} آیتم از {name}")
+        
+        all_brands.extend(b)
+        all_models.extend(m)
+        
+        time.sleep(2)  # تاخیر بین درخواست‌ها
+    
+    return all_brands, all_models
 
 def is_number(model_str):
     try:
@@ -215,8 +296,7 @@ def remove_extra_blank_lines(lines):
 def get_current_time():
     iran_tz = timezone('Asia/Tehran')
     iran_time = datetime.now(iran_tz)
-    current_time = iran_time.strftime('%H:%M')
-    return current_time
+    return iran_time.strftime('%H:%M')
 
 def prepare_final_message(category_name, category_lines, update_date):
     category_title = get_category_name(category_name)
@@ -467,8 +547,7 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
         else:
             logging.warning("❌ خطا در ویرایش پیام نهایی.")
             del_url = f"https://api.telegram.org/bot{bot_token}/deleteMessage"
-            del_params = {"chat_id": chat_id, "message_id": message_id}
-            requests.post(del_url, json=del_params)
+            requests.post(del_url, json={"chat_id": chat_id, "message_id": message_id})
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     params = {
         "chat_id": chat_id,
@@ -486,55 +565,27 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
         logging.error("❌ خطا در ارسال پیام نهایی: %s", response.text)
         return None
 
-def load_url_with_retry(driver, url, retries=3, wait_time=30):
-    """لود کردن URL با تلاش مجدد در صورت خطا"""
-    for attempt in range(retries):
-        try:
-            logging.info(f"🔄 تلاش {attempt + 1} برای لود: {url}")
-            driver.get(url)
-            WebDriverWait(driver, wait_time).until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root'))
-            )
-            logging.info(f"✅ صفحه با موفقیت لود شد: {url}")
-            return True
-        except Exception as e:
-            logging.warning(f"⚠️ خطا در تلاش {attempt + 1}: {e}")
-            if attempt < retries - 1:
-                time.sleep(5)
-    return False
-
 def main():
     try:
         sheet = connect_to_sheet()
         check_and_create_headers(sheet)
-        driver = get_driver()
-        if not driver:
-            logging.error("❌ نمی‌توان WebDriver را ایجاد کرد.")
-            return
-        categories_urls = {
-            "mobile": "https://hamrahtel.com/quick-checkout?category=mobile",
-            "laptop": "https://hamrahtel.com/quick-checkout?category=laptop",
-            "tablet": "https://hamrahtel.com/quick-checkout?category=tablet",
-            "console": "https://hamrahtel.com/quick-checkout?category=game-console"
-        }
-        valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "اینچی"]
-        brands, models = [], []
-        for name, url in categories_urls.items():
-            success = load_url_with_retry(driver, url, retries=3, wait_time=60)
-            if not success:
-                logging.warning(f"⚠️ نمیتوان صفحه {name} را لود کرد، رد شد.")
-                continue
-            time.sleep(3)
-            scroll_page(driver)
-            b, m = extract_product_data(driver, valid_brands)
-            brands.extend(b)
-            models.extend(m)
-            logging.info(f"✅ داده‌های {name} استخراج شد: {len(b)} آیتم")
 
-        driver.quit()
+        valid_brands = [
+            "Galaxy", "POCO", "Redmi", "iPhone", "Redtone",
+            "VOCAL", "TCL", "NOKIA", "Honor", "Huawei",
+            "GLX", "+Otel", "اینچی"
+        ]
+
+        # دریافت داده بدون Selenium
+        brands, models = fetch_all_products(valid_brands)
 
         if not brands:
             logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
+            # ارسال پیام خطا به تلگرام
+            send_telegram_message(
+                "⚠️ خطا: سایت hamrahtel.com در دسترس نیست یا داده‌ای یافت نشد.",
+                BOT_TOKEN, CHAT_ID
+            )
             return
 
         processed_data = []
