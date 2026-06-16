@@ -1,34 +1,52 @@
-name: mobile loptop game telegram hamrah***
+name: Run Telegram Bot
 
 on:
   schedule:
-    - cron: "*/4 * * * *"
-  push:
-    branches:
-      - main
+    - cron: '*/30 5 * * *'
+    - cron: '*/30 6 * * *'
+    - cron: '*/30 7 * * *'
+    - cron: '*/30 8 * * *'
+    - cron: '*/30 9 * * *'
+    - cron: '*/30 10 * * *'
+    - cron: '*/30 11 * * *'
+    - cron: '*/30 12 * * *'
+    - cron: '*/30 13 * * *'
+    - cron: '*/30 14 * * *'
+    - cron: '*/30 15 * * *'
+    - cron: '*/30 16 * * *'
+    - cron: '*/30 17 * * *'
+    - cron: '*/30 18 * * *'
+    - cron: '*/30 19 * * *'
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
-    env:
-      GSHEET_CREDENTIALS_JSON: ${{ secrets.GSHEET_CREDENTIALS_JSON }}
-      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.11'
+
+      - name: Install Google Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run bot
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          GSHEET_CREDENTIALS_JSON: ${{ secrets.GSHEET_CREDENTIALS_JSON }}
         run: python main.py
