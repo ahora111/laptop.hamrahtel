@@ -49,8 +49,8 @@ def fetch_products_api(session, category, retries=3):
     
     # آدرس‌های احتمالی API
     api_urls = [
-        f"https://hamrahtel.com/api/products?category={category}",
-        f"https://hamrahtel.com/api/v1/products?category={category}",
+        f"https://hamrahtel.com/quick-checkout?category={category}",
+        f"https://hamrahtel.com/quick-checkout?category={category}",
         f"https://hamrahtel.com/quick-checkout?category={category}",
     ]
     
