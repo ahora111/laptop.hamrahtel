@@ -40,25 +40,39 @@ def get_driver():
     try:
         chromedriver_autoinstaller.install()
         options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-setuid-sandbox")
-        options.add_argument("--remote-debugging-port=9222")
-        options.add_argument("--disable-software-rasterizer")
         options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--disable-infobars")
+        options.add_argument("--disable-notifications")
+        options.add_argument("--ignore-certificate-errors")
+        options.add_argument("--allow-running-insecure-content")
+        options.add_argument("--disable-web-security")
+        options.add_argument("--memory-pressure-off")
+        options.add_argument("--max_old_space_size=4096")
+        options.add_argument("--single-process")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        options.add_argument("--disable-renderer-backgrounding")
+        options.add_argument("--disable-backgrounding-occluded-windows")
+        options.add_argument("--disable-ipc-flooding-protection")
         options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option("useAutomationExtension", False)
+
         driver = webdriver.Chrome(options=options)
-        driver.set_page_load_timeout(60)
+        driver.set_page_load_timeout(120)
+        driver.set_script_timeout(120)
         return driver
     except Exception as e:
         logging.error(f"خطا در ایجاد WebDriver: {e}")
         return None
 
-def scroll_page(driver, scroll_pause_time=2):
+def scroll_page(driver, scroll_pause_time=3):
     last_height = driver.execute_script("return document.body.scrollHeight")
     while True:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -451,17 +465,10 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
             logging.info("✅ پیام نهایی ویرایش شد.")
             return message_id
         else:
-            logging.warning("❌ خطا در ویرایش پیام نهایی، حذف پیام قبلی و ارسال پیام جدید.")
+            logging.warning("❌ خطا در ویرایش پیام نهایی.")
             del_url = f"https://api.telegram.org/bot{bot_token}/deleteMessage"
-            del_params = {
-                "chat_id": chat_id,
-                "message_id": message_id
-            }
-            del_response = requests.post(del_url, json=del_params)
-            if del_response.ok:
-                logging.info("✅ پیام نهایی قبلی حذف شد.")
-            else:
-                logging.warning("❌ حذف پیام نهایی قبلی موفق نبود: %s", del_response.text)
+            del_params = {"chat_id": chat_id, "message_id": message_id}
+            requests.post(del_url, json=del_params)
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     params = {
         "chat_id": chat_id,
@@ -478,6 +485,23 @@ def send_or_edit_final_message(sheet, final_message, bot_token, chat_id, button_
     else:
         logging.error("❌ خطا در ارسال پیام نهایی: %s", response.text)
         return None
+
+def load_url_with_retry(driver, url, retries=3, wait_time=30):
+    """لود کردن URL با تلاش مجدد در صورت خطا"""
+    for attempt in range(retries):
+        try:
+            logging.info(f"🔄 تلاش {attempt + 1} برای لود: {url}")
+            driver.get(url)
+            WebDriverWait(driver, wait_time).until(
+                EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root'))
+            )
+            logging.info(f"✅ صفحه با موفقیت لود شد: {url}")
+            return True
+        except Exception as e:
+            logging.warning(f"⚠️ خطا در تلاش {attempt + 1}: {e}")
+            if attempt < retries - 1:
+                time.sleep(5)
+    return False
 
 def main():
     try:
@@ -496,25 +520,34 @@ def main():
         valid_brands = ["Galaxy", "POCO", "Redmi", "iPhone", "Redtone", "VOCAL", "TCL", "NOKIA", "Honor", "Huawei", "GLX", "+Otel", "اینچی"]
         brands, models = [], []
         for name, url in categories_urls.items():
-            driver.get(url)
-            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'mantine-Text-root')))
+            success = load_url_with_retry(driver, url, retries=3, wait_time=60)
+            if not success:
+                logging.warning(f"⚠️ نمیتوان صفحه {name} را لود کرد، رد شد.")
+                continue
+            time.sleep(3)
             scroll_page(driver)
             b, m = extract_product_data(driver, valid_brands)
             brands.extend(b)
             models.extend(m)
+            logging.info(f"✅ داده‌های {name} استخراج شد: {len(b)} آیتم")
+
         driver.quit()
+
         if not brands:
             logging.warning("❌ داده‌ای برای ارسال وجود ندارد!")
             return
+
         processed_data = []
         for i in range(len(brands)):
             model_str = process_model(models[i])
             processed_data.append(f"{model_str} {brands[i]}")
+
         message_lines = [decorate_line(row) for row in processed_data]
         categorized = categorize_messages(message_lines)
         today = JalaliDate.today().strftime("%Y-%m-%d")
         all_message_ids = {}
         should_send_final_message = False
+
         for emoji, lines in categorized.items():
             if not lines:
                 continue
@@ -527,6 +560,7 @@ def main():
             all_message_ids[emoji] = message_ids
             if changed:
                 should_send_final_message = True
+
         final_message = (
             "✅ لیست گوشی و سایر کالاهای بالا بروز میباشد. ثبت خرید تا ساعت 10:30 شب انجام میشود و تحویل کالا ساعت 11:30 صبح روز بعد می باشد..\n\n"
             "⭕️ حتما رسید واریز به ایدی تلگرام زیر ارسال شود .\n"
@@ -554,8 +588,11 @@ def main():
                         {"text": emoji_labels.get(emoji, emoji), "url": f"https://t.me/c/{CHAT_ID.replace('-100', '')}/{msg_id}"}
                     ])
         send_or_edit_final_message(sheet, final_message, BOT_TOKEN, CHAT_ID, button_markup, should_send_final_message)
+
     except Exception as e:
         logging.error(f"❌ خطا: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()
