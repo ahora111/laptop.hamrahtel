@@ -58,10 +58,14 @@ def extract_product_data_playwright(page, valid_brands):
                        .replace("تومان", "")
                        .replace("نامشخص", "")
                        .replace("جستجو در مدل‌ها", "")
-                       .replace("دوربین تحت شبکه | کامپیوتر", "")
-                       .replace("موتور برق | ماشین های اداری", "")
-                       .replace("اندروید باکس | لوازم جانبی موبایل", "")
-                       .replace("بیمه | تگ هوشمند", "")
+                       .replace("کامپیوتر", "")
+                       .replace("دوربین تحت شبکه", "")
+                       .replace("موتور برق", "")
+                       .replace("اندروید باکس", "")
+                       .replace("بیمه", "")
+                       .replace("ماشین های اداری", "")
+                       .replace("لوازم جانبی موبایل", "")
+                       .replace("تگ هوشمند", "")
                        .strip())
 
             if not name:
