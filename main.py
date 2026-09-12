@@ -25,7 +25,7 @@ iran_tz = pytz.timezone('Asia/Tehran')
 now = datetime.now(iran_tz)
 current_time_now = now.time()
 start_time = dt_time(9, 30)
-end_time = dt_time(23, 30)
+end_time = dt_time(23, 55)
 if not (start_time <= current_time_now <= end_time):
     print("🕒 خارج از بازه مجاز اجرا (۹:۳۰ تا ۲۳:۳۰). اسکریپت متوقف شد.")
     sys.exit()
