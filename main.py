@@ -58,6 +58,10 @@ def extract_product_data_playwright(page, valid_brands):
                        .replace("تومان", "")
                        .replace("نامشخص", "")
                        .replace("جستجو در مدل‌ها", "")
+                       .replace("دوربین تحت شبکه | کامپیوتر", "")
+                       .replace("موتور برق | ماشین های اداری", "")
+                       .replace("اندروید باکس | لوازم جانبی موبایل", "")
+                       .replace("بیمه | تگ هوشمند", "")
                        .strip())
 
             if not name:
@@ -222,7 +226,7 @@ def decorate_line(line):
         return f"🍏 {line}"
     elif any(keyword in line for keyword in ["اینچی", "لپ تاپ"]):
         return f"💻 {line}"
-    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL"]):
+    elif any(keyword in line for keyword in ["RAM", "FA", "Classic", "Otel", "DOX", "General", "Bloom", "NOKIA", "Nokia", "Zhivaco", "Hanofer", "TCH", "ALCATEL", "Middcell", "Nemo", "ProOne", "Orod", "ProOne"]):
         return f"🟣 {line}"
     elif any(keyword in line for keyword in ["Play Station", "کنسول بازی", "پلی استیشن", "بازی"]):
         return f"🎮 {line}"
@@ -589,10 +593,10 @@ def main():
             "⭕️ حتما رسید واریز به ایدی تلگرام زیر ارسال شود .\n"
             "🆔 @lhossein1\n\n"
             "✅شماره تماس ثبت سفارش :\n"
-            "📞 09371111558\n"
-            "📞 09386373926\n"
-            "📞 09308529712\n"
-            "📞 028-3399-1417"
+            "📞 0937 1111 558\n"
+            "📞 0999 315 3002\n"
+            "📞 0999 315 3008\n"
+            "📞 028 3399 1417"
         )
         button_markup = {"inline_keyboard": []}
         emoji_labels = {
